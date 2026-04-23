@@ -30,6 +30,6 @@ public class ProductEntity extends BaseTimeEntity {
     private String totalArea;        // 총 창고 면적
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")  // 등록한 임대인 (Lessor)
+    @JoinColumn(name = "member_id")  // 등록한 임대인
     private MemberEntity member;
 }

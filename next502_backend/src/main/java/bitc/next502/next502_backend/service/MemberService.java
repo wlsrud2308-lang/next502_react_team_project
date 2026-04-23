@@ -57,6 +57,9 @@ public class MemberService {
         .password(encodedPassword)
         .userEmail(member.getUserEmail())
         .userNick(member.getUserNick())
+        .name(member.getName())
+        .birthDate(member.getBirthDate())
+        .tel(member.getTel())
         .role(Role.ROLE_MEMBER)
         .build();
 
