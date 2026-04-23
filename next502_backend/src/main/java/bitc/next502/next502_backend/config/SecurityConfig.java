@@ -53,14 +53,7 @@ public class SecurityConfig {
 
     return source;
   }
-
-  @Bean
-  public WebSecurityCustomizer configure() {
-    return web -> web.ignoring()
-        .requestMatchers(toH2Console())
-        .requestMatchers("/static/**");
-  }
-
+  
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
     return http
