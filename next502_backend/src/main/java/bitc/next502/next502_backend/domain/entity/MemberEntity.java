@@ -15,7 +15,7 @@ import java.util.Collections;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class MemberEntity implements UserDetails {
+public class MemberEntity extends BaseTimeEntity implements UserDetails {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +29,15 @@ public class MemberEntity implements UserDetails {
 
   @Column(nullable = false)
   private String userNick;
+
+  @Column(nullable = false, length = 45)
+  private String name;
+
+  @Column(nullable = false, length = 10)
+  private String birthDate;
+
+  @Column(nullable = false, length = 20)
+  private String tel;
 
   @Column
   private String userEmail;
