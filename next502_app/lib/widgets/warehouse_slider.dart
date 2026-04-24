@@ -11,7 +11,7 @@ class WarehouseSlider extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Text(
-            "추천 창고",
+            "창고 조회",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),

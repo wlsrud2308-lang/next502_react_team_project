@@ -14,9 +14,9 @@ class ServiceGrid extends StatelessWidget {
       crossAxisSpacing: 10, // 좌우 간격
       children: [
         _buildMenuIcon(context, Icons.near_me, '내 주변', '/map', Colors.blue),
-        _buildMenuIcon(context, Icons.help_outline, 'FAQ', '/faq', Colors.teal),
         _buildMenuIcon(context, Icons.map, '창고지도', '/map', Colors.green),      // 지도 연결
         _buildMenuIcon(context, Icons.favorite, '관심창고', '/wish', Colors.red),
+        _buildMenuIcon(context, Icons.help_outline, 'FAQ', '/faq', Colors.teal),
       ],
     );
   }
