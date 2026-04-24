@@ -31,53 +31,82 @@ function Header() {
     },
   ];
 
-  // ================= SCROLL EVENT =================
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 80);
+      setIsScrolled(window.scrollY > 50);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <nav className={`main-header ${isScrolled ? 'scrolled' : 'top'}`}>
-      <div className="container h-100 d-flex align-items-center justify-content-between">
-
+    <nav
+      className={`fixed-top transition-all py-2 ${
+        isScrolled ? 'bg-white shadow-sm py-1' : 'bg-transparent py-3'
+      }`}
+      style={{ transition: 'all 0.3s ease' }}
+    >
+      <div className="container d-flex align-items-center justify-content-between">
         {/* ================= LOGO ================= */}
-        <div className="logo">
-          <img src="/logo_w.png" alt="창고이음 로고" style={{ width: '220px', maxWidth: '100%' }} />
+        <div className="navbar-brand m-0 p-0 cursor-pointer">
+          <img
+            src={isScrolled ? '/logo_color.png' : '/logo_w.png'}
+            alt="창고이음 로고"
+            style={{ width: '180px', transition: 'all 0.3s ease' }}
+          />
         </div>
 
-        {/* ================= MAIN MENU ================= */}
-        <ul className="nav">
+        {/* ================= PC MENU (Large screens only) ================= */}
+        <ul className="nav d-none d-lg-flex">
           {menuData.map((menu, idx) => (
             <li
               key={idx}
-              className="nav-item position-relative px-3"
+              className="nav-item position-relative mx-2"
               onMouseEnter={() => setActiveMenu(idx)}
               onMouseLeave={() => setActiveMenu(null)}
             >
-              {/* 1차 메뉴 */}
-              <span className="nav-link fw-semibold menu-item">{menu.title}</span>
+              <span
+                className={`nav-link fw-bold px-3 py-3 cursor-pointer ${
+                  isScrolled ? 'text-dark' : 'text-white'
+                }`}
+              >
+                {menu.title}
+              </span>
 
-              {/* 2차 메뉴 */}
-              {activeMenu === idx && (
-                <div className="dropdown-menu-custom shadow-sm">
-                  {menu.items.map((item, i) => (
-                    <a key={i} href={item.link} className="dropdown-item-custom">
-                      {item.name}
-                    </a>
-                  ))}
-                </div>
-              )}
+              {/* 2차 메뉴 드롭다운 */}
+              <div
+                className={`dropdown-menu border-0 shadow-lg p-3 rounded-3 mt-0 ${
+                  activeMenu === idx ? 'show d-block' : 'd-none'
+                }`}
+                style={{ minWidth: '200px', left: '50%', transform: 'translateX(-50%)' }}
+              >
+                {menu.items.map((item, i) => (
+                  <a
+                    key={i}
+                    href={item.link}
+                    className="dropdown-item rounded-2 py-2 px-3 small fw-medium text-secondary hover-bg-light"
+                  >
+                    {item.name}
+                  </a>
+                ))}
+              </div>
             </li>
           ))}
         </ul>
 
-        {/* ================= MOBILE BUTTON ================= */}
-        <button className="btn btn-outline-dark btn-sm">☰</button>
+        {/* ================= RIGHT SIDE UTILS ================= */}
+        <div className="d-flex align-items-center gap-3">
+          <button
+            className={`btn btn-sm d-none d-md-block fw-bold ${isScrolled ? 'btn-outline-primary' : 'btn-outline-light'}`}
+          >
+            로그인
+          </button>
+          <button
+            className={`btn btn-sm border-0 d-lg-none ${isScrolled ? 'text-dark' : 'text-white'}`}
+          >
+            <span className="fs-3">☰</span>
+          </button>
+        </div>
       </div>
     </nav>
   );

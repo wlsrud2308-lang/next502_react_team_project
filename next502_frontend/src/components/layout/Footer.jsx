@@ -3,7 +3,8 @@ function Footer() {
     <footer className="bg-black border-top mt-5">
       <div className="container py-5">
         <div className="row align-items-center">
-          <div className="col-12 col-lg-3 text-center text-lg-start mb-3 mb-lg-0">
+          {/* 로고 영역 */}
+          <div className="col-12 col-lg-3 text-center text-lg-start mb-4 mb-lg-0">
             <img
               src="/logo_w.png"
               alt="창고이음 로고"
@@ -11,8 +12,9 @@ function Footer() {
             />
           </div>
 
+          {/* 정보 영역 - 원본 컬러톤(White, Secondary) 유지 */}
           <div className="col-12 col-lg-9 text-center text-lg-end">
-            <div style={{ fontSize: '0.8rem' }} className="mb-2">
+            <div className="mb-2" style={{ fontSize: '0.8rem' }}>
               <a href="#" className="me-3 text-white fw-semibold text-decoration-none">
                 이용약관
               </a>
@@ -24,11 +26,11 @@ function Footer() {
               </a>
             </div>
 
-            <div style={{ fontSize: '0.9rem' }} className="text-white fw-semibold">
+            <div className="text-white fw-semibold" style={{ fontSize: '0.9rem' }}>
               창고이음 사용 문의 : 051-888-7615 │ 플랫폼 기술 이용 문의 : 050-7878-8299
             </div>
 
-            <div style={{ fontSize: '0.75rem' }} className="text-secondary fw-semibold mt-2">
+            <div className="mt-2 text-secondary fw-semibold" style={{ fontSize: '0.75rem' }}>
               Copyright ⓒ 2022 Busan Metropolitan City. all rights reserved.
             </div>
           </div>
