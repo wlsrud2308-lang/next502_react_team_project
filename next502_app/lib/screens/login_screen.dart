@@ -60,8 +60,24 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  // DB의 user_id, user_pwd와 대조하는 로직이 들어갈 자리
-                  print("Login ID: ${_idController.text}");
+                  // 임시 아이디와 비번
+                  if (_idController.text == "test" && _pwController.text == "1234") {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text("로그인에 성공했습니다!"),
+                          backgroundColor: Colors.deepPurple,
+                        ),
+                    );
+                  //   홈 화면으로 가기
+                    Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text("아이디 또는 비밀번호가 일치하지 않습니다"),
+                        backgroundColor: Colors.redAccent,
+                        ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,

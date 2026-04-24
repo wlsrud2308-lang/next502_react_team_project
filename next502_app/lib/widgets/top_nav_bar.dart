@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:next502_app/screens/login_screen.dart';
 
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
   const TopNavBar({super.key});
@@ -25,6 +26,10 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.person_outline, color: Colors.black),
           onPressed: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
           },
         ),
       ],
