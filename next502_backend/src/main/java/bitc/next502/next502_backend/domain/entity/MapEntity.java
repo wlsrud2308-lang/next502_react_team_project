@@ -20,5 +20,5 @@ public class MapEntity extends BaseTimeEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id") // 어떤 창고의 좌표인지
-    private ProductEntity product;
+    private WarehouseEntity product;
     }

@@ -1,7 +1,7 @@
 package bitc.next502.next502_backend.service;
 
 import bitc.next502.next502_backend.domain.entity.MemberEntity;
-import bitc.next502.next502_backend.domain.entity.ProductEntity;
+import bitc.next502.next502_backend.domain.entity.WarehouseEntity;
 import bitc.next502.next502_backend.domain.entity.WishlistEntity;
 import bitc.next502.next502_backend.domain.repository.WishlistRepository;
 import jakarta.transaction.Transactional;
@@ -17,7 +17,7 @@ public class WishlistService {
     private final WishlistRepository wishlistRepository;
 
     @Transactional
-    public String toggleWish(MemberEntity member, ProductEntity product) {
+    public String toggleWish(MemberEntity member, WarehouseEntity product) {
         Optional<WishlistEntity> wish = wishlistRepository.findWish(member, product);
 
         if (wish.isPresent()) {

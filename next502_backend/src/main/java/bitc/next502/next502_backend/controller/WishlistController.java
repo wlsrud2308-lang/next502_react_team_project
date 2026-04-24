@@ -1,7 +1,7 @@
 package bitc.next502.next502_backend.controller;
 
 import bitc.next502.next502_backend.domain.entity.MemberEntity;
-import bitc.next502.next502_backend.domain.entity.ProductEntity;
+import bitc.next502.next502_backend.domain.entity.WarehouseEntity;
 import bitc.next502.next502_backend.service.ProductService;
 import bitc.next502.next502_backend.service.WishlistService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class WishlistController {
             @PathVariable Long productId,
             @AuthenticationPrincipal MemberEntity member) {
 
-        ProductEntity product = productService.getProductDetail(productId);
+        WarehouseEntity product = productService.getProductDetail(productId);
 
         String result = wishlistService.toggleWish(member, product);
 

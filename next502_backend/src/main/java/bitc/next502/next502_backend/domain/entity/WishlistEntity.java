@@ -23,5 +23,5 @@ public class WishlistEntity extends BaseTimeEntity {
     // 찜한 창고
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
-    private ProductEntity product;
+    private WarehouseEntity product;
 }
