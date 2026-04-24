@@ -24,17 +24,15 @@ class ProviderMainScreen extends StatelessWidget {
 
                   const SizedBox(height: 30),
 
-                  // === 추가된 사용량 섹션 ===
-                  const Text("실시간 창고 사용량",
+                  // === 웨이브 볼 형식으로 변경된 사용량 섹션 ===
+                  const Text("실시간 창고 사용률",
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
                   const WarehouseUsage(
                     warehouseName: "부산 강서구 신축 창고",
-                    usageRate: 0.74,
-                    totalSpace: 500,
-                    usedSpace: 370,
+                    usagePercent: 0.74, // 74% 사용 중
                   ),
-                  // =======================
+                  // =========================================
 
                   const SizedBox(height: 30),
                   const Text("내 창고 등록 현황",
