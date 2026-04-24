@@ -8,14 +8,14 @@ import lombok.*;
 @Getter @Setter @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class StorageUsageEntity extends BaseTimeEntity {
+public class WarehouseUsageEntity extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long usageId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
-    private ProductEntity product;
+    private WarehouseEntity product;
 
     private Double currentUsedArea;  // 현재 사용 중인 면적
     private Double availableArea;    // 현재 가용 면적 (남은 공간)
