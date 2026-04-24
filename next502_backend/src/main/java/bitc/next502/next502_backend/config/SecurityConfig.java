@@ -53,7 +53,7 @@ public class SecurityConfig {
 
     return source;
   }
-  
+
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
     return http
