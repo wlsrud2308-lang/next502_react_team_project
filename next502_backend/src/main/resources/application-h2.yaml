@@ -6,8 +6,8 @@ spring:
   datasource:
     driver-class-name: org.h2.Driver
     url: jdbc:h2:mem:next502db
-    username: next502_team1
-    password: next502_team1_!@#$
+    username: java402_team1
+    password: java402_team1_!@#$
 
   h2:
     console:
