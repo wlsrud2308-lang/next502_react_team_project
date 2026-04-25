@@ -1,0 +1,30 @@
+spring:
+  config:
+    activate:
+      on-profile: h2
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:next502db
+    username: next502_team1
+    password: next502_team1_!@#$
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  sql:
+    init:
+      mode: embedded
+
+  jpa:
+    database: h2
+    generate-ddl: true
+    hibernate:
+      ddl-auto: create
+    defer-datasource-initialization: true
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

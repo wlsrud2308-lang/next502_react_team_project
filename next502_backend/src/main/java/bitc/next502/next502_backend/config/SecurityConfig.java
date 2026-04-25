@@ -63,7 +63,7 @@ public class SecurityConfig {
         .logout(logout -> logout.disable())
         .sessionManagement(httpSecuritySessionManagementConfigurer -> httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(authRequests -> authRequests
-            .requestMatchers("/auth/**", "/board").permitAll()
+            .requestMatchers("/auth/**", "/board", "/h2-console/**").permitAll()
             .requestMatchers("/admin/**").hasRole("ADMIN")
             .requestMatchers("/member/**").hasAnyRole("MEMBER", "ADMIN")
             .anyRequest().authenticated())

@@ -5,37 +5,24 @@ spring:
   application:
     name: next502_backend
 
+  profiles:
+    active: bitc
+    group:
+      local:
+        - h2
+      bitc:
+        - mysql
+
   mvc:
     hiddenmethod:
       filter:
         enabled: true
 
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://58.239.58.243:3306/java402_team1_db?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
-    username: java402_team1
-    password: java402_team1_!@#$
-
     hikari:
       connection-test-query: SELECT 1
       maximum-pool-size: 10
       minimum-idle: 5
-
-  sql:
-    init:
-      mode: always
-
-  jpa:
-    database: mysql
-    database-platform: org.hibernate.dialect.MySQL8Dialect
-    generate-ddl: false
-    hibernate:
-      ddl-auto: update
-    defer-datasource-initialization: true
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
 
 jwt:
   issuer: next502@bitc.ac.kr
