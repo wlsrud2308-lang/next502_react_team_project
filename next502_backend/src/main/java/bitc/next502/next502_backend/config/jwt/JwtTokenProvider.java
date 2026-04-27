@@ -73,9 +73,9 @@ public class JwtTokenProvider {
             new SimpleGrantedAuthority(claims.get("userRole").toString())
     );
 
-
     MemberEntity member = MemberEntity.builder()
-            .id(Long.parseLong(claims.get("id").toString()))
+
+            .id(((Number) claims.get("id")).longValue())
             .userId(claims.get("userId").toString())
             .userNick(claims.get("userNick").toString())
             .userEmail(claims.get("userEmail").toString())

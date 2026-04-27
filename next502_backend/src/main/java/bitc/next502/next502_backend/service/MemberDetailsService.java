@@ -15,6 +15,7 @@ public class MemberDetailsService implements UserDetailsService {
 
   @Override
   public MemberEntity loadUserByUsername(String userId) throws UsernameNotFoundException {
-    return memberRepository.findByUserId(userId).orElseThrow(() -> new IllegalArgumentException("사용자 ID 가 없습니다."));
+    return memberRepository.findByUserId(userId)
+            .orElseThrow(() -> new UsernameNotFoundException("해당 아이디를 찾을 수 없습니다: " + userId));
   }
 }
