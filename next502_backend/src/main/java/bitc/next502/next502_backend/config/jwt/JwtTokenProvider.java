@@ -23,8 +23,7 @@ public class JwtTokenProvider {
   private final JwtProperties jwtProperties;
 
   public String generateToken(MemberEntity memberEntity, Duration expiredAt) {
-    Date now = new Date(); // 날짜/시간 객체 생성
-
+    Date now = new Date();
     return makeToken(new Date(now.getTime() + expiredAt.toMillis()), memberEntity);
   }
 
@@ -32,7 +31,8 @@ public class JwtTokenProvider {
     Date now = new Date();
 
     Map<String, Object> claims = new HashMap<>();
-    claims.put("userSeq", memberEntity.getUserSeq());
+
+    claims.put("id", memberEntity.getId());
     claims.put("userId", memberEntity.getUserId());
     claims.put("userNick", memberEntity.getUserNick());
     claims.put("userEmail", memberEntity.getUserEmail());
@@ -41,14 +41,14 @@ public class JwtTokenProvider {
     Key secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes());
 
     return Jwts.builder()
-        .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
-        .setIssuer(jwtProperties.getIssuer())
-        .setIssuedAt(now)
-        .setExpiration(expiry)
-        .setSubject(memberEntity.getUserEmail())
-        .addClaims(claims)
-        .signWith(secretKey)
-        .compact();
+            .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
+            .setIssuer(jwtProperties.getIssuer())
+            .setIssuedAt(now)
+            .setExpiration(expiry)
+            .setSubject(memberEntity.getUserEmail())
+            .addClaims(claims)
+            .signWith(secretKey)
+            .compact();
   }
 
   public boolean validToken(String token) {
@@ -56,9 +56,9 @@ public class JwtTokenProvider {
       Key secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes());
 
       Jwts.parser()
-          .setSigningKey(secretKey)
-          .build()
-          .parseClaimsJws(token);
+              .setSigningKey(secretKey)
+              .build()
+              .parseClaimsJws(token);
       return true;
     }
     catch (Exception e) {
@@ -67,17 +67,20 @@ public class JwtTokenProvider {
   }
 
   public Authentication getAuthentication(String token) {
-
     Claims claims = getClaims(token);
 
-    Set<SimpleGrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(claims.get("userRole").toString()));
+    Set<SimpleGrantedAuthority> authorities = Collections.singleton(
+            new SimpleGrantedAuthority(claims.get("userRole").toString())
+    );
+
 
     MemberEntity member = MemberEntity.builder()
-        .userId(claims.get("userId").toString())
-        .userNick(claims.get("userNick").toString())
-        .userEmail(claims.get("userEmail").toString())
-        .role(Role.valueOf(claims.get("userRole").toString()))
-        .build();
+            .id(Long.parseLong(claims.get("id").toString()))
+            .userId(claims.get("userId").toString())
+            .userNick(claims.get("userNick").toString())
+            .userEmail(claims.get("userEmail").toString())
+            .role(Role.valueOf(claims.get("userRole").toString()))
+            .build();
 
     return new UsernamePasswordAuthenticationToken(member, token, authorities);
   }
@@ -86,9 +89,9 @@ public class JwtTokenProvider {
     Key secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes());
 
     return Jwts.parser()
-        .setSigningKey(secretKey)
-        .build()
-        .parseClaimsJws(token)
-        .getBody();
+            .setSigningKey(secretKey)
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
   }
 }

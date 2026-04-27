@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:next502_app/providers/auth_provider.dart';
+import 'package:next502_app/services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,7 +13,38 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _idController = TextEditingController();
   final _pwController = TextEditingController();
-  bool _isAutoLogin = false; // 자동 로그인 체크박스 상태
+  bool _isAutoLogin = false;
+
+
+  final ApiClient _apiClient = ApiClient();
+
+  // 로그인 처리
+  Future<void> _handleLogin() async {
+    try {
+      // 1. 서버로 로그인 요청
+      final response = await _apiClient.login(_idController.text, _pwController.text);
+
+      if (response.statusCode == 200) {
+        // 2. 토큰 저장
+        await _apiClient.saveTokens(response.data['accessToken'], response.data['refreshToken']);
+
+
+        if (!mounted) return;
+        context.read<AuthProvider>().loginSuccess();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("로그인에 성공했습니다!"), backgroundColor: Colors.deepPurple),
+        );
+
+        // 4. 로그인 화면 닫기 (홈으로 돌아감)
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("아이디 또는 비밀번호가 일치하지 않습니다"), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,12 +70,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 40),
 
-            // 1. 입력 필드 (아이디, 비밀번호)
             _buildTextField("아이디", _idController, false),
             const SizedBox(height: 16),
             _buildTextField("비밀번호", _pwController, true),
 
-            // 2. 자동 로그인 체크박스
             Row(
               children: [
                 Checkbox(
@@ -54,31 +86,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 3. 로그인 버튼
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  // 임시 아이디와 비번
-                  if (_idController.text == "test" && _pwController.text == "1234") {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text("로그인에 성공했습니다!"),
-                          backgroundColor: Colors.deepPurple,
-                        ),
-                    );
-                  //   홈 화면으로 가기
-                    Navigator.pop(context);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text("아이디 또는 비밀번호가 일치하지 않습니다"),
-                        backgroundColor: Colors.redAccent,
-                        ),
-                    );
-                  }
-                },
+                //서버 통신 함수 연결
+                onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -88,7 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            // 4. 아이디/비번 찾기 및 회원가입 링크
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -102,8 +114,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
 
             const SizedBox(height: 50),
-
-            // 5. 소셜 로그인 섹션 (이미지에서 언급한 네이버/카카오 연동 대비)
             Center(
               child: Column(
                 children: [
@@ -126,7 +136,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 텍스트 필드 공통 위젯
   Widget _buildTextField(String label, TextEditingController controller, bool isPassword) {
     return TextField(
       controller: controller,
@@ -148,7 +157,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 텍스트 링크 위젯
   Widget _buildTextLink(String label, String route) {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, route),
@@ -156,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 링크 사이 구분선
   Widget _buildDivider() {
     return Container(
       height: 12,
@@ -166,16 +173,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // 소셜 로그인 아이콘 버튼 (모양만 구성)
   Widget _buildSocialIcon(String assetPath, Color color) {
     return Container(
       width: 50,
       height: 50,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(Icons.chat_bubble, color: Colors.white), // 실제로는 이미지를 넣으시면 됩니다.
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: const Icon(Icons.chat_bubble, color: Colors.white),
     );
   }
 }

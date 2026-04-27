@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "t_jwt_refresh_token")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -15,13 +16,13 @@ public class RefreshTokenEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  public Long id;
+  @Column(name = "id") // DB 컬럼명 매핑 [cite: 15]
+  private Long id;
 
-  @Lob
-  @Column(nullable = false)
+  @Column(name = "refresh_token", nullable = false, columnDefinition = "TEXT")
   private String refreshToken;
 
-  @Column(nullable = false)
+  @Column(name = "expiry_date", nullable = false)
   private LocalDateTime expiryDate;
 
   @ManyToOne(fetch = FetchType.LAZY)

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,16 +16,18 @@ public class AuthController {
 
   private final MemberService memberService;
 
-  @GetMapping("/login")
-  public ResponseEntity<?> login(@RequestParam String userId, @RequestParam String userPw) {
+  @PostMapping("/login")
+  public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
     try {
-      ResponseDTO jwtToken = memberService.getJwtAuthenticate(userId, userPw);
+      String userId = loginData.get("userId");
+      String userPw = loginData.get("userPw");
 
+      ResponseDTO jwtToken = memberService.getJwtAuthenticate(userId, userPw);
       return ResponseEntity.ok().body(jwtToken);
     }
     catch (Exception e) {
       System.out.println("오류 발생 : " + e.getMessage());
-      System.out.println(e.getStackTrace());
+      System.out.println(e.getStackTrace()); // 스크린샷에 있던 이 줄도 유지해 드렸습니다
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패");
     }
   }
