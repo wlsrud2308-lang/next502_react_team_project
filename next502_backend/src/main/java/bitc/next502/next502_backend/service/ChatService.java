@@ -1,11 +1,9 @@
 package bitc.next502.next502_backend.service;
 
-import bitc.next502.next502_backend.domain.entity.ChatMessageEntity;
-import bitc.next502.next502_backend.domain.entity.ChatRoomEntity;
-import bitc.next502.next502_backend.domain.entity.MemberEntity;
-import bitc.next502.next502_backend.domain.entity.WarehouseEntity;
+import bitc.next502.next502_backend.domain.entity.*;
 import bitc.next502.next502_backend.domain.repository.ChatMessageRepository;
 import bitc.next502.next502_backend.domain.repository.ChatRoomRepository;
+import bitc.next502.next502_backend.domain.repository.MemberRepository;
 import bitc.next502.next502_backend.domain.repository.WarehouseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +21,7 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final WarehouseRepository warehouseRepository;
+    private final MemberRepository memberRepository;
 
     /**
      * 1. 채팅방 생성 또는 기존 방 조회
@@ -70,5 +69,25 @@ public class ChatService {
     public void markMessagesAsRead(Long chatRoomSeq, MemberEntity member) {
         // 본인이 보낸 거 말고, 상대방이 보낸 메시지만 'Y'로 변경
         chatMessageRepository.markAsRead(chatRoomSeq, member.getUserSeq());
+    }
+    @Transactional
+    public ChatMessageEntity saveMessage(Long roomId, Long senderSeq, String content, ChatType type, String fileUrl) {
+        // 방 정보와 보낸 사람 정보 조회
+        ChatRoomEntity room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        MemberEntity sender = memberRepository.findById(senderSeq)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        ChatMessageEntity message = ChatMessageEntity.builder()
+                .chatRoom(room)
+                .sender(sender)
+                .content(content)
+                .chatType(type)
+                .fileUrl(fileUrl) // 사진 전송 시 사용
+                .isReadYn("N")    // 초기값은 안읽음
+                .build();
+
+        return chatMessageRepository.save(message);
     }
 }
