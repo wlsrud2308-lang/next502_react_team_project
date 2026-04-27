@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // 1. 우리가 정한 상단바 (widgets/top_nav_bar.dart)
+
       appBar: const TopNavBar(),
 
       // 왼쪽 메뉴 (임시)
@@ -67,7 +67,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                // 배너에 걸친 서치바 (widgets/main_search_bar.dart)
+                // 배너에 걸친 서치바
                 const Positioned(
                   bottom: -25,
                   left: 20,
@@ -79,7 +79,7 @@ class HomeScreen extends StatelessWidget {
 
             const SizedBox(height: 40), // 서치바 삐져나온 만큼 여백
 
-            // 3. 빠른 서비스 아이콘 그리드 (widgets/service_grid.dart)
+            // 3. 빠른 서비스 아이콘 그리드
             const Padding(
               padding: EdgeInsets.all(20.0),
               child: ServiceGrid(),
@@ -87,11 +87,11 @@ class HomeScreen extends StatelessWidget {
 
             const Divider(thickness: 8, color: Color(0xFFF5F5F5)), // 구분선
 
-            // 4. 하단 창고 슬라이더 (widgets/warehouse_slider.dart)
+            // 4. 하단 창고 슬라이더
             const WarehouseSlider(),
 
             const SizedBox(height: 30), // 하단 여유 공간
-            const PopupZone(),       // 새로 추가한 팝업 존
+            const PopupZone(),          // 새로 추가한 팝업 존
             const SizedBox(height: 30),
             const MainFooter(),
           ],

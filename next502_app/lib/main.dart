@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:next502_app/providers/auth_provider.dart';
 import 'package:next502_app/screens/chat_screen.dart';
 import 'package:next502_app/screens/faq_screen.dart';
 import 'package:next502_app/screens/find_id_screen.dart';
@@ -10,11 +11,20 @@ import 'package:next502_app/screens/warehouse_info_screen.dart';
 import 'package:next502_app/screens/warehouse_input_screen.dart';
 import 'package:next502_app/screens/warehouse_list_screen.dart';
 import 'package:next502_app/screens/warehouse_map_screen.dart';
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'package:next502_app/screens/my_page_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+      MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ],
+        child: const MyApp(),
+      ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -30,13 +40,14 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // 2. 시작 페이지를 로그인 화면으로 변경
-      initialRoute: '/whInfo',
+      initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/findId': (context) => const FindIdScreen(),
         '/findPw': (context) => const FindPwScreen(),
+        '/mypage': (context) => const MyPageScreen(),
         '/whInput': (context) => const WarehouseInputScreen(),
         '/ocr_verify': (context) => const OcrScreen(),
         '/whInfo': (context) => const WarehouseInfoScreen(),
