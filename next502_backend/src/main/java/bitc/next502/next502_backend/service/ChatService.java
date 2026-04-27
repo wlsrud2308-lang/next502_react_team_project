@@ -80,7 +80,7 @@ public class ChatService {
         ChatMessageEntity message = ChatMessageEntity.builder()
                 .chatRoom(room)
                 .sender(sender)
-                .content(content)
+                .message(content)
                 .chatType(type)
                 .fileUrl(fileUrl) // 사진 전송 시 사용
                 .isReadYn("N")    // 초기값은 안읽음
