@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:next502_app/providers/auth_provider.dart';
 import 'package:next502_app/screens/login_screen.dart';
 
 class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
@@ -23,13 +25,35 @@ class TopNavBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       centerTitle: true,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.person_outline, color: Colors.black),
-          onPressed: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
+        // 상태 감시
+        Consumer<AuthProvider>(
+          builder: (context, auth, child) {
+            if (auth.isLoggedIn) {
+              // [로그인 된 상태]
+
+              return IconButton(
+                icon: const Icon(Icons.person, color: Colors.deepPurple), // 보라색으로 강조
+                onPressed: () {
+                  // 아직 마이페이지가 없다면 임시로 스낵바
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("내 정보(마이페이지)로 이동합니다.")),
+                  );
+
+                  Navigator.pushNamed(context, '/mypage');
+                },
+              );
+            } else {
+              // [로그인 안 된 상태]
+              return IconButton(
+                icon: const Icon(Icons.person_outline, color: Colors.black),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                },
+              );
+            }
           },
         ),
       ],
