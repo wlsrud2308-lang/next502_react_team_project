@@ -26,21 +26,19 @@ public class ChatService {
 
     /**
      * 1. 채팅방 생성 또는 기존 방 조회
-     * 창고 상세페이지에서 '문의하기' 클릭 시 동작
      */
     @Transactional
-    public ChatRoomEntity createOrGetRoom(Long warehouseSeq, MemberEntity buyer) {
-        // 1-1. 해당 창고 정보 가져오기
-        WarehouseEntity warehouse = warehouseRepository.findById(warehouseSeq)
+    public ChatRoomEntity createOrGetRoom(Long warehouseId, MemberEntity buyer) {
+        // 1-1. 해당 창고 정보 가져오기 (warehouseSeq -> warehouseId)
+        WarehouseEntity warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 창고입니다."));
 
-        // 1-2. 이미 해당 유저(구매자)와 해당 창고에 대한 방이 있는지 확인
-        return chatRoomRepository.findExistRoom(warehouseSeq, buyer.getUserSeq())
+        return chatRoomRepository.findExistRoom(warehouseId, buyer.getId())
                 .orElseGet(() -> {
                     // 없으면 새로 생성
                     ChatRoomEntity newRoom = ChatRoomEntity.builder()
                             .buyer(buyer)
-                            .provider(warehouse.getMember()) // 창고 주인(판매자)
+                            .provider(warehouse.getMember())
                             .warehouse(warehouse)
                             .status("OPEN")
                             .build();
@@ -52,23 +50,23 @@ public class ChatService {
      * 2. 로그인한 유저의 채팅방 목록 조회
      */
     public List<ChatRoomEntity> getMyChatRooms(MemberEntity member) {
-        // 내가 구매자이거나 판매자인 모든 방을 가져옴
         return chatRoomRepository.findAllMyRooms(member);
     }
 
     /**
      * 3. 채팅 내역 조회 (페이징)
      */
-    public Slice<ChatMessageEntity> getChatMessages(Long chatRoomSeq, Pageable pageable) {
-        return chatMessageRepository.findByChatRoomChatRoomSeqOrderByMessageSeqDesc(chatRoomSeq, pageable);
+    public Slice<ChatMessageEntity> getChatMessages(Long chatRoomId, Pageable pageable) {
+
+        return chatMessageRepository.findByChatRoomIdOrderByIdDesc(chatRoomId, pageable);
     }
 
     /**
      * 4. 읽음 처리
      */
     @Transactional
-    public void markMessagesAsRead(Long chatRoomSeq, MemberEntity member) {
-        // 본인이 보낸 거 말고, 상대방이 보낸 메시지만 'Y'로 변경
-        chatMessageRepository.markAsRead(chatRoomSeq, member.getUserSeq());
+    public void markMessagesAsRead(Long chatRoomId, MemberEntity member) {
+        // member.getUserSeq() -> member.getId()
+        chatMessageRepository.markAsRead(chatRoomId, member.getId());
     }
 }

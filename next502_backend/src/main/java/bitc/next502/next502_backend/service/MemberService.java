@@ -32,7 +32,7 @@ public class MemberService {
 
     MemberEntity member = (MemberEntity) authentication.getPrincipal();
 
-    String accessToken = jwtTokenProvider.generateToken(member, Duration.ofMinutes(5));
+    String accessToken = jwtTokenProvider.generateToken(member, Duration.ofMinutes(30));
     RefreshTokenEntity refreshToken = refreshTokenService.generateRefreshToken(member);
 
     return ResponseDTO.builder()
@@ -51,18 +51,23 @@ public class MemberService {
     }
 
     String encodedPassword = passwordEncoder.encode(member.getUserPw());
+// 고정해제
+    Role userRole = member.getRole();
+    if (userRole == null || userRole == Role.ROLE_ADMIN) {
+      userRole = Role.ROLE_MEMBER;
+    }
 
     MemberEntity newMember = MemberEntity.builder()
-        .userId(member.getUserId())
-        .password(encodedPassword)
-        .userEmail(member.getUserEmail())
-        .userNick(member.getUserNick())
-        .name(member.getName())
-        .birthDate(member.getBirthDate())
-        .tel(member.getTel())
-        .role(Role.ROLE_MEMBER)
-        .build();
-
+            .userId(member.getUserId())
+            .password(encodedPassword)
+            .userEmail(member.getUserEmail())
+            .userNick(member.getUserNick())
+            .name(member.getName())
+            .birthDate(member.getBirthDate())
+            .tel(member.getTel())
+            .role(userRole)
+            .build();
+//영역
     memberRepository.save(newMember);
 
     return "회원 가입 성공";
@@ -77,7 +82,7 @@ public class MemberService {
 
   public ResponseDTO refreshAccessToken(String refreshToken) {
     String newAccessToken = refreshTokenService.findMemberByToken(refreshToken)
-        .map(member -> jwtTokenProvider.generateToken(member, Duration.ofMinutes(5)))
+        .map(member -> jwtTokenProvider.generateToken(member, Duration.ofMinutes(30)))
         .orElseThrow(() -> new IllegalArgumentException("유효하지 않거나 만료된 리프레시 토큰 입니다."));
 
     return ResponseDTO.builder()

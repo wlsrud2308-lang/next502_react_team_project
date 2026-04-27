@@ -4,34 +4,35 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "chat_rooms")
+@Table(name = "chat_rooms") // DB 테이블명
 @Getter
-@Setter // 값 변경을 위해 추가
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // 1. JPA 필수 생성자
-@AllArgsConstructor // 2. Builder를 위한 전체 생성자
-@Builder // 3. 빌더 패턴 사용
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class ChatRoomEntity extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long chatRoomSeq;
+    @Column(name = "id")
+    private Long id;
 
-    // 구매자 (MemberEntity가 있어야 함)
+    // 구매자
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "buyer_user_seq", nullable = false)
+    @JoinColumn(name = "buyer_id", nullable = false) // DB 컬럼명에 맞춰 수정 (보통 _id 권장)
     private MemberEntity buyer;
 
     // 판매자/임대인
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "provider_user_seq", nullable = false)
+    @JoinColumn(name = "provider_id", nullable = false)
     private MemberEntity provider;
 
     // 어떤 창고에 대한 채팅인지
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "warehouse_seq", nullable = false)
-    private WarehouseEntity warehouse; // 프로젝트의 창고 엔티티명 확인!
+    @JoinColumn(name = "warehouse_id", nullable = false)
+    private WarehouseEntity warehouse;
 
     @Column(length = 20)
-    private String status; // 예: OPEN, CLOSED
+    private String status; // OPEN, CLOSED
 
 }

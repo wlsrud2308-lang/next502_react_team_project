@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:next502_app/services/api_client.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -8,18 +9,66 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  // DB의 role 대응 (기본값 BUYER = 아니오)
-  String _userRole = "BUYER";
+  String _userRole = "BUYER"; // 기본값 일반회원
 
-  // 컨트롤러 정의
   final _idController = TextEditingController();
   final _pwController = TextEditingController();
-  final _pwConfirmController = TextEditingController(); // 비밀번호 확인 추가
-  final _nameController = TextEditingController();       // 이름 추가
-  final _nickController = TextEditingController();       // 닉네임 분리
-  final _birthController = TextEditingController();      // 생년월일 추가
-  final _phoneController = TextEditingController();      // 전화번호 추가
+  final _pwConfirmController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _nickController = TextEditingController();
+  final _birthController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
+
+  final ApiClient _apiClient = ApiClient();
+
+  // 회원가입 처리
+  Future<void> _handleSignup() async {
+    // 1. 비밀번호 일치 확인
+    if (_pwController.text != _pwConfirmController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("비밀번호가 일치하지 않습니다."), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    try {
+
+      String backendRole = (_userRole == "PROVIDER") ? "ROLE_PROVIDER" : "ROLE_MEMBER";
+
+
+      final userData = {
+        "userId": _idController.text,
+        "userPw": _pwController.text,
+        "userEmail": _emailController.text,
+        "userNick": _nickController.text,
+        "name": _nameController.text,
+        "birthDate": _birthController.text,
+        "tel": _phoneController.text,
+        "role": backendRole,
+      };
+
+      // 4. API 호출
+      final response = await _apiClient.signup(userData);
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("회원가입이 완료되었습니다!"), backgroundColor: Colors.deepPurple),
+        );
+
+        // 5. 공급자(임대인)면 서류 제출(OCR) 화면으로, 일반회원이면 로그인 화면으로 이동
+        if (_userRole == "PROVIDER") {
+          Navigator.pushReplacementNamed(context, '/ocr_verify');
+        } else {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("가입 실패: 입력 정보를 다시 확인해주세요."), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +86,6 @@ class _SignupScreenState extends State<SignupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. 기본 정보 입력 섹션
             _buildInputLabel("아이디"),
             _buildTextField(_idController, "아이디를 입력하세요"),
 
@@ -64,9 +112,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
             const SizedBox(height: 40),
 
-            // 2. 임대인 여부 선택 (예/아니오)
-            const Text("임대인으로 가입하시겠습니까?",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text("임대인으로 가입하시겠습니까?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -78,27 +124,17 @@ class _SignupScreenState extends State<SignupScreen> {
 
             const SizedBox(height: 50),
 
-            // 3. 최종 가입 버튼
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  // 비밀번호 일치 확인 로직 예시
-                  if (_pwController.text != _pwConfirmController.text) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("비밀번호가 일치하지 않습니다.")),
-                    );
-                    return;
-                  }
-                  print("가입 데이터 전송 준비: ${_nameController.text}, $_userRole");
-                },
+                // 실제 가입 API 통신 함수 연결
+                onPressed: _handleSignup,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text("가입하기",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text("가입하기", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 20),
@@ -108,7 +144,6 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  // 예/아니오 선택 버튼 위젯
   Widget _buildSelectionButton(String role, String label) {
     bool isSelected = _userRole == role;
     return Expanded(
@@ -149,10 +184,7 @@ class _SignupScreenState extends State<SignupScreen> {
         filled: true,
         fillColor: Colors.grey.shade50,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
       ),
     );
   }

@@ -12,6 +12,7 @@ import java.util.Collections;
 @Entity
 @Table(name = "t_jwt_member")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
@@ -19,28 +20,28 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "user_seq")
-  private Long userSeq;
+  @Column(name = "id")
+  private Long id;
 
-  @Column(nullable = false, unique = true)
+  @Column(name = "user_id", nullable = false, unique = true) // DB 컬럼명 매핑 [cite: 14]
   private String userId;
 
-  @Column(nullable = false, name = "user_pw")
+  @Column(name = "user_pw", nullable = false) // DB 컬럼명 매핑 [cite: 14]
   private String password;
 
-  @Column(nullable = false)
+  @Column(name = "user_nick", nullable = false) // DB 컬럼명 매핑 [cite: 14]
   private String userNick;
 
   @Column(nullable = false, length = 45)
   private String name;
 
-  @Column(nullable = false, length = 10)
+  @Column(name = "birth_date", nullable = false, length = 10) // DB 컬럼명 매핑 [cite: 14]
   private String birthDate;
 
   @Column(nullable = false, length = 20)
   private String tel;
 
-  @Column
+  @Column(name = "user_email") // DB 컬럼명 매핑 [cite: 14]
   private String userEmail;
 
   @Enumerated(EnumType.STRING)
