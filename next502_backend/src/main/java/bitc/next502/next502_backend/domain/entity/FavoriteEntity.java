@@ -4,24 +4,23 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "t_wishlist")
+@Table(name = "favorites")
 @Getter
+@Setter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Builder
-public class WishlistEntity extends BaseTimeEntity {
+public class FavoriteEntity extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long favoriteSeq;
 
-    // 찜한 사람
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "user_seq", nullable = false)
     private MemberEntity member;
 
-    // 찜한 창고
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private WarehouseEntity product;
+    @JoinColumn(name = "warehouse_seq", nullable = false)
+    private WarehouseEntity warehouse;
 }

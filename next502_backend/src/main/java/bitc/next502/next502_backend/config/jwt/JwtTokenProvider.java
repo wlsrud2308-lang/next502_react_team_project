@@ -32,7 +32,7 @@ public class JwtTokenProvider {
     Date now = new Date();
 
     Map<String, Object> claims = new HashMap<>();
-    claims.put("id", memberEntity.getId());
+    claims.put("userSeq", memberEntity.getUserSeq());
     claims.put("userId", memberEntity.getUserId());
     claims.put("userNick", memberEntity.getUserNick());
     claims.put("userEmail", memberEntity.getUserEmail());

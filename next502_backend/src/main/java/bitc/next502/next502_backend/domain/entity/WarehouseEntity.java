@@ -3,33 +3,38 @@ package bitc.next502.next502_backend.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList; // 1. 추가
+import java.util.List;
+
 @Entity
-@Table(name = "t_product")
+@Table(name = "warehouses")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class WarehouseEntity extends BaseTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long productId;
-
-    @Column(nullable = false)
-    private String productName;      // 창고명
-    private String address;          // 창고 주소
-    private String contact;          // 담당자 번호
-    private String warehouseType;    // 창고 유형
-    private String operationType;    // 운영구조
-    private String businessName;     // 사업장명
-    private String businessAddress;  // 사업장주소
-
-    @Column(columnDefinition = "TEXT")
-    private String facilities;       // 시설 및 서비스 상세
-
-    private String totalArea;        // 총 창고 면적
+    private Long warehouseSeq;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")  // 등록한 임대인
+    @JoinColumn(name = "user_seq", nullable = false)
     private MemberEntity member;
+
+    private String name;
+    private String address;
+    private Double totalArea;
+    private String sizeRank;
+
+    // 1:1 관계 - 상세 정보
+    @OneToOne(mappedBy = "warehouse", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private WarehouseDetailEntity detail;
+
+    // 1:N 관계 - 이미지 목록
+    @Builder.Default // 2. 빌더 사용 시 초기값 유지를 위해 추가
+    @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WarehouseImageEntity> images = new ArrayList<>();
+
 }

@@ -6,11 +6,11 @@ import lombok.*;
 @Entity
 @Table(name = "chat_messages")
 @Getter
-@Setter // 필요시 추가
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // 1. JPA용 기본 생성자
-@AllArgsConstructor // 2. 빌더용 전체 생성자
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Builder
-public class ChatMessageEntity extends BaseTimeEntity { // 3. 상속 추가
+public class ChatMessageEntity extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,11 +24,24 @@ public class ChatMessageEntity extends BaseTimeEntity { // 3. 상속 추가
     @JoinColumn(name = "sender_user_seq", nullable = false)
     private MemberEntity sender;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Enumerated(EnumType.STRING) // 2. Enum 타입 필수 설정
+    @Column(nullable = false, length = 20)
+    private ChatType chatType;
+
+    @Column(length = 500)
+    private String fileUrl;
+
+    private Integer duration;
+
     @Builder.Default
-    @Column(columnDefinition = "CHAR(1) DEFAULT 'N'")
+    @Column(name = "is_read_yn", columnDefinition = "CHAR(1) DEFAULT 'N'")
     private String isReadYn = "N";
+
+    @Builder.Default
+    @Column(name = "is_deleted_yn", columnDefinition = "CHAR(1) DEFAULT 'N'")
+    private String isDeletedYn = "N";
 }
 

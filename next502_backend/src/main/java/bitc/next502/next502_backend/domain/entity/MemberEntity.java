@@ -19,7 +19,8 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @Column(name = "user_seq")
+  private Long userSeq;
 
   @Column(nullable = false, unique = true)
   private String userId;
