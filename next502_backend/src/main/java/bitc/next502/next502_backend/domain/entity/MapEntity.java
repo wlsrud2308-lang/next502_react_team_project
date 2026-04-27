@@ -19,6 +19,6 @@ public class MapEntity extends BaseTimeEntity {
     private Double longitude; // 경도
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id") // 어떤 창고의 좌표인지
-    private WarehouseEntity product;
+    @JoinColumn(name = "warehouse_id") // 어떤 창고의 좌표인지
+    private WarehouseEntity warehouse;
     }
