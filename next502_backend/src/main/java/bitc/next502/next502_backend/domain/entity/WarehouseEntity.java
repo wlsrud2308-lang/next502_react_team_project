@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "t_warehouse") // DB 테이블명에 맞춰 확인 (기존 warehouses에서 t_warehouse로 수정
+@Table(name = "warehouses") // DB 테이블명에 맞춰 확인 (기존 warehouses에서 t_warehouse로 수정
 @Getter
 @Setter
 @Builder

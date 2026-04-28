@@ -18,7 +18,7 @@ public class WarehouseDetailEntity {
     private Long warehouseDetailSeq;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "warehouse_seq", nullable = false) // FK 설정
+    @JoinColumn(name = "warehouse_id", nullable = false) // FK 설정
     private WarehouseEntity warehouse;
 
     private String storageType;      // 보관 유형

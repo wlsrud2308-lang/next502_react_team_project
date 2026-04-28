@@ -17,7 +17,7 @@ public class WarehouseImageEntity {
     private Long warehouseImageSeq;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "warehouse_seq", nullable = false) // 어떤 창고의 이미지인지
+    @JoinColumn(name = "warehouse_id", nullable = false) // 어떤 창고의 이미지인지
     private WarehouseEntity warehouse;
 
     @Column(nullable = false, length = 500)

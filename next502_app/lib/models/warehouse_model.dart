@@ -61,21 +61,24 @@ class WarehouseDetailModel {
 
 // 3. 이미지 모델
 class WarehouseImageModel {
-  final int id;
+  final int warehouseImageSeq;
   final String imageUrl;
   final String isRepresentativeYn;
+  final int? sortOrder;
 
   WarehouseImageModel({
-    required this.id,
+    required this.warehouseImageSeq,
     required this.imageUrl,
     required this.isRepresentativeYn,
+    this.sortOrder,
   });
 
   factory WarehouseImageModel.fromJson(Map<String, dynamic> json) {
     return WarehouseImageModel(
-      id: json['id'],
+      warehouseImageSeq: json['warehouseImageSeq'] as int? ?? 0,
       imageUrl: json['imageUrl'] ?? '',
       isRepresentativeYn: json['isRepresentativeYn'] ?? 'N',
+      sortOrder: json['sortOrder'] as int?,
     );
   }
 }

@@ -12,19 +12,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/warehouse") // /product -> /warehouse 로 변경
+@RequestMapping("/warehouse")
 @RequiredArgsConstructor
 public class WarehouseController {
 
-    private final WarehouseService warehouseService; // 변수명 통일
+    private final WarehouseService warehouseService;
 
     @GetMapping("/search")
-    public ResponseEntity<List<WarehouseEntity>> search(
+    public ResponseEntity<List<WarehouseDTO>> search(
             @RequestParam(value = "location", required = false) String location,
-            @RequestParam(value = "size", required = false) String size, // operation/type -> size (Rank)
+            @RequestParam(value = "size", required = false) String size,
             @RequestParam(value = "name", required = false) String name) {
 
-        // 서비스의 바뀐 메서드명 searchWarehouses 호출
         return ResponseEntity.ok(warehouseService.searchWarehouses(location, size, name));
     }
 
@@ -32,6 +31,10 @@ public class WarehouseController {
     public ResponseEntity<String> insertWarehouse(
             @RequestBody WarehouseDTO warehouseDTO,
             @AuthenticationPrincipal MemberEntity member) {
+
+        if (member == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
 
         warehouseService.insertWarehouse(warehouseDTO, member);
         return ResponseEntity.ok("창고 등록이 완료되었습니다.");
