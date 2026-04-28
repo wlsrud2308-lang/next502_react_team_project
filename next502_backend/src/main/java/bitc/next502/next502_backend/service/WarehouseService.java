@@ -73,7 +73,7 @@ public class WarehouseService {
     // Entity -> DTO 변환 편의 메서드
     private WarehouseDTO convertToDTO(WarehouseEntity entity) {
         WarehouseDTO dto = WarehouseDTO.builder()
-                .whid(entity.getId())
+                .warehouseId(entity.getWarehouse_id())
                 .name(entity.getName())
                 .address(entity.getAddress())
                 .totalArea(String.valueOf(entity.getTotalArea()))
