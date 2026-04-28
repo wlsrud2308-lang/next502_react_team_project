@@ -1,5 +1,5 @@
 class WarehouseModel {
-  final int id;
+  final int warehouseId;
   final String name;
   final String address;
   final double totalArea;
@@ -8,7 +8,7 @@ class WarehouseModel {
   final List<WarehouseImageModel> images; // 이미지 목록
 
   WarehouseModel({
-    required this.id,
+    required this.warehouseId,
     required this.name,
     required this.address,
     required this.totalArea,
@@ -20,7 +20,7 @@ class WarehouseModel {
   // 서버 JSON 데이터를 객체로 변환
   factory WarehouseModel.fromJson(Map<String, dynamic> json) {
     return WarehouseModel(
-      id: json['id'],
+      warehouseId: json['warehouseId'] as int? ?? 0,
       name: json['name'] ?? '',
       address: json['address'] ?? '',
       totalArea: (json['totalArea'] as num).toDouble(),

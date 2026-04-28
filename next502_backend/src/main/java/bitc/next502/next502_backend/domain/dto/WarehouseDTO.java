@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class WarehouseDTO {
 
-    private Long whid;     // 창고 고유 번호
+    private Long warehouseId;     // 창고 고유 번호
     private String name;           // 창고명 (기존 productName)
     private String address;        // 창고 주소
     private String totalArea;      // 총 면적 (Service에서 Double로 변환)

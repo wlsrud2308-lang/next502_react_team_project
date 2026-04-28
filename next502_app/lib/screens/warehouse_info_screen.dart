@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 class WarehouseInfoScreen extends StatelessWidget {
   final Map<String, dynamic>? warehouseData;
-  // 실제 서비스 시에는 로그인 성공 후 저장된 고유 번호를 사용해야 합니다.
   final int myUserSeq = 10;
+  final _storage = const FlutterSecureStorage();
 
   const WarehouseInfoScreen({super.key, this.warehouseData});
 
