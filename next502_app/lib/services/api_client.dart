@@ -33,7 +33,7 @@ class ApiClient {
 
   Future<Response> loginWithKakao(String accessToken, int kakaoId, String nickname) async {
     try {
-      return await dio.post('/api/auth/kakao', data: {
+      return await dio.post('/auth/kakao', data: {
         'accessToken': accessToken,
         'kakaoId': kakaoId,
         'nickname': nickname,

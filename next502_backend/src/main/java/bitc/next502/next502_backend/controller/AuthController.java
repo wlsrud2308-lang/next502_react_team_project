@@ -1,20 +1,27 @@
 package bitc.next502.next502_backend.controller;
 
+import bitc.next502.next502_backend.domain.dto.KakaoLoginDTO;
 import bitc.next502.next502_backend.domain.dto.MemberDTO;
 import bitc.next502.next502_backend.domain.dto.ResponseDTO;
+import bitc.next502.next502_backend.domain.dto.TokenDTO;
+import bitc.next502.next502_backend.service.AuthService;
 import bitc.next502.next502_backend.service.MemberService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
   private final MemberService memberService;
+  private final AuthService authService;
 
   @PostMapping("/login")
   public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
@@ -26,8 +33,7 @@ public class AuthController {
       return ResponseEntity.ok().body(jwtToken);
     }
     catch (Exception e) {
-      System.out.println("오류 발생 : " + e.getMessage());
-      System.out.println(e.getStackTrace()); // 스크린샷에 있던 이 줄도 유지해 드렸습니다
+      log.warn("일반 로그인 실패: {}", e.getMessage());
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패");
     }
   }
@@ -52,7 +58,34 @@ public class AuthController {
   @PostMapping("/refresh")
   public ResponseEntity<?> refreshToken(@RequestParam String refreshToken) {
     ResponseDTO newAccessToken = memberService.refreshAccessToken(refreshToken);
-
     return ResponseEntity.ok(newAccessToken);
+  }
+
+
+  @PostMapping("/kakao")
+  public ResponseEntity<?> loginWithKakao(@RequestBody KakaoLoginDTO request) {
+    log.info("카카오 로그인 요청 진입 - kakaoId: {}, nickname: {}",
+            request.getKakaoId(), request.getNickname());
+
+    try {
+
+      TokenDTO tokenDTO = authService.loginKakao(request);
+
+
+      ResponseDTO responseDTO = ResponseDTO.builder()
+              .accessToken(tokenDTO.getAccessToken())
+              .refreshToken(tokenDTO.getRefreshToken())
+              .role("ROLE_MEMBER")
+              .build();
+
+      log.info("카카오 로그인 성공 - kakaoId: {}", request.getKakaoId());
+      return ResponseEntity.ok(responseDTO);
+    }
+    catch (Exception e) {
+      log.error("카카오 로그인 실패 - kakaoId: {}, error: {}",
+              request.getKakaoId(), e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+              .body("카카오 로그인 실패: " + e.getMessage());
+    }
   }
 }
