@@ -11,15 +11,15 @@ import java.util.Optional;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoomEntity, Long> {
 
-
+    // 1. 기존 방 존재 여부 확인
     @Query("SELECT r FROM ChatRoomEntity r " +
-            "WHERE r.warehouse.id = :warehouseId " +
-            "AND r.buyer.id = :buyerId")
-    Optional<ChatRoomEntity> findExistRoom(@Param("warehouseId") Long warehouseId, @Param("buyerId") Long buyerId);
+            "WHERE r.warehouse.warehouse_id = :warehouseId " +
+            "AND r.member.id = :memberId")
+    Optional<ChatRoomEntity> findExistRoom(@Param("warehouseId") Long warehouseId, @Param("memberId") Long memberId);
 
-    // 2. 내 채팅방 목록 조회 (수정 시간 역순)
+    // 2. 내 채팅방 목록 조회 (modifiedDate -> updateDate로 수정)
     @Query("SELECT r FROM ChatRoomEntity r " +
-            "WHERE r.buyer = :member OR r.provider = :member " +
+            "WHERE r.member = :member OR r.provider = :member " +
             "ORDER BY r.updateDate DESC")
     List<ChatRoomEntity> findAllMyRooms(@Param("member") MemberEntity member);
 }

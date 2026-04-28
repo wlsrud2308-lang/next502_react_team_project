@@ -10,13 +10,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessageEntity, Long> {
 
-
-    Slice<ChatMessageEntity> findByChatRoomIdOrderByIdDesc(Long chatRoomId, Pageable pageable);
-
+    Slice<ChatMessageEntity> findByChatRoom_ChatRoomIdOrderByIdDesc(Long chatRoomId, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE ChatMessageEntity m SET m.isReadYn = 'Y' " +
-            "WHERE m.chatRoom.id = :roomId " +
+            "WHERE m.chatRoom.chatRoomId = :roomId " + // m.chatRoom.id 대신 chatRoomId 사용
             "AND m.sender.id != :userId " +
             "AND m.isReadYn = 'N'")
     int markAsRead(@Param("roomId") Long roomId, @Param("userId") Long userId);

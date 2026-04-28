@@ -4,8 +4,8 @@ class WarehouseModel {
   final String address;
   final double totalArea;
   final String sizeRank;
-  final WarehouseDetailModel? detail; // 상세 정보
-  final List<WarehouseImageModel> images; // 이미지 목록
+  final WarehouseDetailModel? detail;
+  final List<WarehouseImageModel> images;
 
   WarehouseModel({
     required this.warehouseId,
@@ -17,13 +17,15 @@ class WarehouseModel {
     this.images = const [],
   });
 
-  // 서버 JSON 데이터를 객체로 변환
   factory WarehouseModel.fromJson(Map<String, dynamic> json) {
     return WarehouseModel(
       warehouseId: json['warehouseId'] as int? ?? 0,
       name: json['name'] ?? '',
       address: json['address'] ?? '',
-      totalArea: (json['totalArea'] as num).toDouble(),
+
+      // ⭐ 수정 포인트: String으로 들어오는 "500.0"을 double로 안전하게 파싱합니다.
+      totalArea: double.tryParse(json['totalArea']?.toString() ?? '0') ?? 0.0,
+
       sizeRank: json['sizeRank'] ?? '',
       detail: json['detail'] != null
           ? WarehouseDetailModel.fromJson(json['detail'])

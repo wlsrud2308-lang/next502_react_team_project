@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:next502_app/providers/auth_provider.dart';
+import 'package:next502_app/providers/warehouse_provider.dart';
 import 'package:next502_app/screens/chat_screen.dart';
 import 'package:next502_app/screens/faq_screen.dart';
 import 'package:next502_app/screens/find_id_screen.dart';
@@ -21,6 +22,7 @@ void main() {
       MultiProvider(
           providers: [
             ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProvider(create: (_) => WarehouseProvider()),
           ],
         child: const MyApp(),
       ),

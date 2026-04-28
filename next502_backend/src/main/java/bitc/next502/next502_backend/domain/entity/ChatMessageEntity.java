@@ -18,7 +18,7 @@ public class ChatMessageEntity extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false) // 3. 외래키 명칭 통일
+    @JoinColumn(name = "chat_room_id", nullable = false) // 3. 외래키 명칭 통일
     private ChatRoomEntity chatRoom;
 
     @ManyToOne(fetch = FetchType.LAZY)

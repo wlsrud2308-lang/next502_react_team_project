@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "chat_rooms") // DB 테이블명
+@Table(name = "chat_rooms")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -14,15 +14,15 @@ public class ChatRoomEntity extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+    @Column(name = "chat_room_id")
+    private Long chatRoomId;
 
-    // 구매자
+    // 구매자(일반 회원) -> Role.ROLE_MEMBER 인 사람
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "buyer_id", nullable = false) // DB 컬럼명에 맞춰 수정 (보통 _id 권장)
-    private MemberEntity buyer;
+    @JoinColumn(name = "member_id", nullable = false) // buyer_id 대신 member_id로 수정
+    private MemberEntity member;
 
-    // 판매자/임대인
+    // 판매자(임대인) -> Role.ROLE_PROVIDER 인 사람
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "provider_id", nullable = false)
     private MemberEntity provider;
@@ -32,7 +32,7 @@ public class ChatRoomEntity extends BaseTimeEntity {
     @JoinColumn(name = "warehouse_id", nullable = false)
     private WarehouseEntity warehouse;
 
+    @Builder.Default
     @Column(length = 20)
-    private String status; // OPEN, CLOSED
-
+    private String status = "OPEN";
 }

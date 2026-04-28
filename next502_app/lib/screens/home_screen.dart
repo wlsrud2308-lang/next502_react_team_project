@@ -5,12 +5,18 @@ import '../widgets/top_nav_bar.dart';
 import '../widgets/main_search_bar.dart';
 import '../widgets/service_grid.dart';
 import '../widgets/warehouse_slider.dart';
+import 'package:provider/provider.dart';
+import 'package:next502_app/providers/warehouse_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final warehouseProvider = Provider.of<WarehouseProvider>(context, listen: false);
+    if (warehouseProvider.warehouses.isEmpty && !warehouseProvider.isLoading) {
+      Future.microtask(() => warehouseProvider.fetchMainWarehouses());
+    }
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -87,11 +93,32 @@ class HomeScreen extends StatelessWidget {
 
             const Divider(thickness: 8, color: Color(0xFFF5F5F5)), // 구분선
 
-            // 4. 하단 창고 슬라이더
-            const WarehouseSlider(),
+            // 4. 하단 창고 슬라이더 (DB 연동 버전)
+            Consumer<WarehouseProvider>(
+              builder: (context, provider, child) {
+                // 로딩 중일 때 표시할 위젯
+                if (provider.isLoading) {
+                  return const SizedBox(
+                    height: 210,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                // 데이터가 없을 때 표시할 위젯
+                if (provider.warehouses.isEmpty) {
+                  return const SizedBox(
+                    height: 210,
+                    child: Center(child: Text("등록된 창고가 없습니다.")),
+                  );
+                }
+
+                // 데이터가 있으면 리스트를 넘겨줍니다. (const 제거 필수!)
+                return WarehouseSlider(items: provider.warehouses);
+              },
+            ),
 
             const SizedBox(height: 30), // 하단 여유 공간
-            const PopupZone(),          // 새로 추가한 팝업 존
+            const PopupZone(),
             const SizedBox(height: 30),
             const MainFooter(),
           ],
