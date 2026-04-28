@@ -9,7 +9,11 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
   Optional<MemberEntity> findByUserId(String userId);
 
+  Optional<MemberEntity> findByKakaoId(Long kakaoId);
+
   boolean existsByUserId(String userId);
 
   boolean existsByUserEmail(String userEmail);
+
+
 }

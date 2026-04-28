@@ -23,25 +23,26 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
   @Column(name = "id")
   private Long id;
 
-  @Column(name = "user_id", nullable = false, unique = true) // DB 컬럼명 매핑 [cite: 14]
+  @Column(name = "user_id", nullable = false, unique = true)
   private String userId;
 
-  @Column(name = "user_pw", nullable = false) // DB 컬럼명 매핑 [cite: 14]
+
+  @Column(name = "user_pw", nullable = false)
   private String password;
 
-  @Column(name = "user_nick", nullable = false) // DB 컬럼명 매핑 [cite: 14]
+  @Column(name = "user_nick", nullable = false)
   private String userNick;
 
   @Column(nullable = false, length = 45)
   private String name;
 
-  @Column(name = "birth_date", nullable = false, length = 10) // DB 컬럼명 매핑 [cite: 14]
+  @Column(name = "birth_date", nullable = false, length = 10)
   private String birthDate;
 
   @Column(nullable = false, length = 20)
   private String tel;
 
-  @Column(name = "user_email") // DB 컬럼명 매핑 [cite: 14]
+  @Column(name = "user_email")
   private String userEmail;
 
   @Enumerated(EnumType.STRING)
@@ -55,6 +56,11 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
 
   @Column(name = "business_address", length = 200)
   private String businessAddress;
+
+  // --- 카카오 고유 식별 번호 필드 ---
+  @Column(name = "kakao_id", unique = true)
+  private Long kakaoId;
+  // ---------------------------------------
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {

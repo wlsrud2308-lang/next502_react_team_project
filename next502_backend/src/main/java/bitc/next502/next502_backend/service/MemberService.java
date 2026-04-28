@@ -36,9 +36,9 @@ public class MemberService {
     RefreshTokenEntity refreshToken = refreshTokenService.generateRefreshToken(member);
 
     return ResponseDTO.builder()
-        .accessToken(accessToken)
-        .refreshToken(refreshToken.getRefreshToken())
-        .build();
+            .accessToken(accessToken)
+            .refreshToken(refreshToken.getRefreshToken())
+            .build();
   }
 
   public String signupMember(MemberDTO member) {
@@ -76,6 +76,27 @@ public class MemberService {
     return "회원 가입 성공";
   }
 
+  // --- 마이페이지
+  public MemberDTO getMemberInfo(String userId) {
+    MemberEntity member = memberRepository.findByUserId(userId)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+    return MemberDTO.builder()
+            .userId(member.getUserId())
+            .userNick(member.getUserNick())
+            .name(member.getName())
+            .birthDate(member.getBirthDate())
+            .tel(member.getTel())
+            .userEmail(member.getUserEmail())
+            .role(member.getRole())
+            // OCR 정보 포함
+            .businessName(member.getBusinessName())
+            .businessNumber(member.getBusinessNumber())
+            .businessAddress(member.getBusinessAddress())
+            .build();
+  }
+
+
   @Transactional
   public void deleteMember(String userId) {
     MemberEntity member = memberRepository.findByUserId(userId).orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -85,11 +106,11 @@ public class MemberService {
 
   public ResponseDTO refreshAccessToken(String refreshToken) {
     String newAccessToken = refreshTokenService.findMemberByToken(refreshToken)
-        .map(member -> jwtTokenProvider.generateToken(member, Duration.ofMinutes(30)))
-        .orElseThrow(() -> new IllegalArgumentException("유효하지 않거나 만료된 리프레시 토큰 입니다."));
+            .map(member -> jwtTokenProvider.generateToken(member, Duration.ofMinutes(30)))
+            .orElseThrow(() -> new IllegalArgumentException("유효하지 않거나 만료된 리프레시 토큰 입니다."));
 
     return ResponseDTO.builder()
-        .accessToken(newAccessToken)
-        .build();
+            .accessToken(newAccessToken)
+            .build();
   }
 }
