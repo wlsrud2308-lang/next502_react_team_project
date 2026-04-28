@@ -21,7 +21,7 @@ import static org.springframework.boot.autoconfigure.security.servlet.PathReques
 
 @Configuration
 @RequiredArgsConstructor
-public class SecurityConfig {
+public class  SecurityConfig {
 
   private final JwtTokenProvider jwtTokenProvider;
 
@@ -43,7 +43,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.addAllowedOrigin("http://localhost:5173");
+    configuration.addAllowedOriginPattern("*");
     configuration.addAllowedMethod("*");
     configuration.addAllowedHeader("*");
     configuration.setAllowCredentials(true);
