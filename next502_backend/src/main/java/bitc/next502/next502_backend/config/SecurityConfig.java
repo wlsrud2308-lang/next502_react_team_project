@@ -64,8 +64,9 @@ public class  SecurityConfig {
         .sessionManagement(httpSecuritySessionManagementConfigurer -> httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
         .authorizeHttpRequests(authRequests -> authRequests
-            .requestMatchers("/auth/**", "/board", "/h2-console/**", "/ocr/**").permitAll()
+            .requestMatchers("/auth/**", "/board", "/h2-console/**", "/ocr/**", "/warehouse/search").permitAll()
             .requestMatchers("/admin/**").hasRole("ADMIN")
+            .requestMatchers("/warehouse/insert").hasAnyRole("PROVIDER", "ADMIN")
             .requestMatchers("/member/**").hasAnyRole("MEMBER", "PROVIDER", "ADMIN")
             .anyRequest().authenticated())
 
