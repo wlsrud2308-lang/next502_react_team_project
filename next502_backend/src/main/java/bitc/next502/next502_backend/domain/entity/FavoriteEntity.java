@@ -17,10 +17,10 @@ public class FavoriteEntity extends BaseTimeEntity {
     private Long favoriteSeq;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_seq", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private MemberEntity member;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "warehouse_seq", nullable = false)
+    @JoinColumn(name = "warehouse_id", nullable = false)
     private WarehouseEntity warehouse;
 }
