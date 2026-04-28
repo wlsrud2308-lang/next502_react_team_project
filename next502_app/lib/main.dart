@@ -61,7 +61,13 @@ class MyApp extends StatelessWidget {
         '/whInfo': (context) => const WarehouseInfoScreen(),
         '/whMap': (context) => const WarehouseMapScreen(),
         '/faq' : (context) => const FaqScreen(),
-        '/chat' : (context) => const ChatScreen(),
+        '/chat': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return ChatScreen(
+            chatRoomId: args['chatRoomId'],
+            warehouseName: args['warehouseName'],
+          );
+        },
         '/pvMain' : (context) => const ProviderMainScreen(),
         '/whList' : (context) => const WarehouseListScreen(),
 

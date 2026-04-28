@@ -27,12 +27,13 @@ class _LoginScreenState extends State<LoginScreen> {
         final String accessToken = response.data['accessToken'];
         final String refreshToken = response.data['refreshToken'] ?? "";
         final String userRole = response.data['role'] ?? 'ROLE_MEMBER';
+        final int id = response.data['id'];
 
         await _apiClient.saveTokens(accessToken, refreshToken);
 
         if (!mounted) return;
 
-        context.read<AuthProvider>().loginSuccess(accessToken, userRole);
+        context.read<AuthProvider>().loginSuccess(accessToken, userRole, id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("로그인에 성공했습니다!"), backgroundColor: Colors.deepPurple),
@@ -85,11 +86,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // 토큰 저장
         await _apiClient.saveTokens(ourAccessToken, ourRefreshToken);
+        final int id = response.data['id'];
 
         if (!mounted) return;
 
         // 상태 관리
-        context.read<AuthProvider>().loginSuccess(ourAccessToken, userRole);
+        context.read<AuthProvider>().loginSuccess(ourAccessToken, userRole, id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("$nickname님, 환영합니다!"), backgroundColor: Colors.deepPurple),
