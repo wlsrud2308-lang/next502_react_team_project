@@ -66,6 +66,9 @@ public class MemberService {
             .birthDate(member.getBirthDate())
             .tel(member.getTel())
             .role(userRole)
+            .businessName(member.getBusinessName())
+            .businessNumber(member.getBusinessNumber())
+            .businessAddress(member.getBusinessAddress())
             .build();
 //영역
     memberRepository.save(newMember);

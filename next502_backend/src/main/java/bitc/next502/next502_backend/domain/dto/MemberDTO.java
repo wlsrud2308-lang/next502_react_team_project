@@ -17,4 +17,9 @@ public class MemberDTO {
   private String tel;
   private String userEmail;
   private Role role;
+
+  // --- OCR 연동을 위해 추가된 공급자 정보 필드 ---
+  private String businessName;
+  private String businessNumber;
+  private String businessAddress;
 }

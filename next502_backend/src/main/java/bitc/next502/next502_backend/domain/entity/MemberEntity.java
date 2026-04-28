@@ -47,6 +47,15 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
   @Enumerated(EnumType.STRING)
   private Role role;
 
+  @Column(name = "business_name", length = 100)
+  private String businessName;
+
+  @Column(name = "business_number", length = 50)
+  private String businessNumber;
+
+  @Column(name = "business_address", length = 200)
+  private String businessAddress;
+
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
     return Collections.singleton(new SimpleGrantedAuthority(role.name()));

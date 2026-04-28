@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // 4. 로그인 화면 닫기 (홈으로 돌아감)
-        Navigator.pop(context);
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
