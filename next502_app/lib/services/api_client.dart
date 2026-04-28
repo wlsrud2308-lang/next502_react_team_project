@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -9,6 +8,7 @@ class ApiClient {
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   ApiClient() {
+    // 모든 요청에 JWT 토큰을 자동으로 포함시키는 인터셉터
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -22,6 +22,7 @@ class ApiClient {
     );
   }
 
+  /// 1. 일반 로그인
   Future<Response> login(String userId, String userPw) async {
     return await dio.post('/auth/login', data: {
       'userId': userId,
@@ -29,17 +30,25 @@ class ApiClient {
     });
   }
 
+
+  Future<Response> loginWithKakao(String accessToken, int kakaoId, String nickname) async {
+    try {
+      return await dio.post('/api/auth/kakao', data: {
+        'accessToken': accessToken,
+        'kakaoId': kakaoId,
+        'nickname': nickname,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// 3. 일반 회원가입
   Future<Response> signup(Map<String, dynamic> userData) async {
     return await dio.post('/auth/signup', data: userData);
   }
 
-  /// 사업자등록증 이미지를 백엔드로 업로드
-  ///   "companyName": "(주)부산창고",
-  ///   "registerNumber": "123-45-67890",
-  ///   "representativeName": "홍길동",
-  ///   "businessAddress": "부산광역시 사하구 ...",
-  ///   "message": "OCR 분석 완료"
-  /// }
+  /// 4. 사업자등록증 이미지 업로드 및 OCR 분석
   Future<Response> uploadBusinessLicense(File imageFile) async {
     String fileName = imageFile.path.split('/').last;
 
@@ -55,15 +64,27 @@ class ApiClient {
       data: formData,
       options: Options(
         contentType: 'multipart/form-data',
-        // OCR 분석은 시간이 걸릴 수 있어 타임아웃 여유있게 설정
         sendTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 60),
       ),
     );
   }
 
-  Future<void> saveTokens(String accessToken, String refreshToken) async {
+  /// 5. 내 정보 가져오기
+  Future<Response> getMyInfo() async {
+    return await dio.get('/api/member/me');
+  }
+
+  /// 6. 서버에서 받은 토큰 보안 저장소에 저장
+  Future<void> saveTokens(String accessToken, String? refreshToken) async {
     await storage.write(key: 'accessToken', value: accessToken);
-    await storage.write(key: 'refreshToken', value: refreshToken);
+    if (refreshToken != null) {
+      await storage.write(key: 'refreshToken', value: refreshToken);
+    }
+  }
+
+  /// 7. 로그아웃 시 토큰 삭제
+  Future<void> clearTokens() async {
+    await storage.deleteAll();
   }
 }

@@ -15,8 +15,14 @@ import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'package:next502_app/screens/my_page_screen.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  KakaoSdk.init(
+    nativeAppKey: 'f9ff9a37a47bb4441f072e20fef5c75f', // 카카오 네이티브 앱 키 등록
+  );
+  print('내 카카오 해시키: ${await KakaoSdk.origin}');
   runApp(
       MultiProvider(
           providers: [

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:next502_app/providers/auth_provider.dart';
 import 'package:next502_app/services/api_client.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,34 +16,96 @@ class _LoginScreenState extends State<LoginScreen> {
   final _pwController = TextEditingController();
   bool _isAutoLogin = false;
 
-
   final ApiClient _apiClient = ApiClient();
 
-  // 로그인 처리
+  // 1. 일반 로그인 처리 (아이디/비밀번호)
   Future<void> _handleLogin() async {
     try {
-      // 1. 서버로 로그인 요청
       final response = await _apiClient.login(_idController.text, _pwController.text);
 
       if (response.statusCode == 200) {
-        // 2. 토큰 저장
-        await _apiClient.saveTokens(response.data['accessToken'], response.data['refreshToken']);
+        final String accessToken = response.data['accessToken'];
+        final String refreshToken = response.data['refreshToken'] ?? "";
+        final String userRole = response.data['role'] ?? 'ROLE_MEMBER';
 
+        await _apiClient.saveTokens(accessToken, refreshToken);
 
         if (!mounted) return;
-        context.read<AuthProvider>().loginSuccess();
+
+        context.read<AuthProvider>().loginSuccess(accessToken, userRole);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("로그인에 성공했습니다!"), backgroundColor: Colors.deepPurple),
         );
 
-        // 4. 로그인 화면 닫기 (홈으로 돌아감)
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("아이디 또는 비밀번호가 일치하지 않습니다"), backgroundColor: Colors.redAccent),
       );
+    }
+  }
+
+  // 2. 카카오 로그인 및 백엔드 연동
+  Future<void> _loginWithKakao() async {
+    try {
+      OAuthToken token;
+
+      // 카카오톡 설치 여부에 따라 로그인 방식 결정
+      if (await isKakaoTalkInstalled()) {
+        try {
+          token = await UserApi.instance.loginWithKakaoTalk();
+        } catch (error) {
+          token = await UserApi.instance.loginWithKakaoAccount();
+        }
+      } else {
+        token = await UserApi.instance.loginWithKakaoAccount();
+      }
+
+      // 카카오 사용자 정보 가져오기
+      User user = await UserApi.instance.me();
+      String nickname = user.kakaoAccount?.profile?.nickname ?? "카카오유저";
+
+
+
+      // 카카오 인증 정보 전송
+      final response = await _apiClient.loginWithKakao(
+          token.accessToken,
+          user.id,
+          nickname
+      );
+
+      if (response.statusCode == 200) {
+        // 서버에서 준 우리 앱 전용 JWT 토큰 추출
+        final String ourAccessToken = response.data['accessToken'];
+        final String ourRefreshToken = response.data['refreshToken'] ?? "";
+        // 카카오 로그인은 기본적으로 ROLE_MEMBER 권한 부여
+        final String userRole = response.data['role'] ?? 'ROLE_MEMBER';
+
+        // 토큰 저장
+        await _apiClient.saveTokens(ourAccessToken, ourRefreshToken);
+
+        if (!mounted) return;
+
+        // 상태 관리
+        context.read<AuthProvider>().loginSuccess(ourAccessToken, userRole);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("$nickname님, 환영합니다!"), backgroundColor: Colors.deepPurple),
+        );
+
+        // 홈 화면으로 이동
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      }
+
+    } catch (error) {
+      print('카카오 로그인/연동 실패: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("로그인 처리 중 오류가 발생했습니다."), backgroundColor: Colors.redAccent),
+        );
+      }
     }
   }
 
@@ -90,7 +153,6 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                //서버 통신 함수 연결
                 onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
@@ -122,9 +184,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildSocialIcon("assets/icons/kakao.png", Colors.yellow),
+                      // 카카오 로그인 버튼
+                      _buildSocialIcon("assets/icons/kakao.png", Colors.yellow, _loginWithKakao),
                       const SizedBox(width: 20),
-                      _buildSocialIcon("assets/icons/naver.png", Colors.green),
+                      // 네이버 로그인 버튼 (미구현)
+                      _buildSocialIcon("assets/icons/naver.png", Colors.green, () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("네이버 로그인은 준비 중입니다.")));
+                      }),
                     ],
                   ),
                 ],
@@ -135,6 +201,8 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  // --- UI 컴포넌트
 
   Widget _buildTextField(String label, TextEditingController controller, bool isPassword) {
     return TextField(
@@ -173,12 +241,16 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSocialIcon(String assetPath, Color color) {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: const Icon(Icons.chat_bubble, color: Colors.white),
+  Widget _buildSocialIcon(String assetPath, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+
+        child: const Icon(Icons.chat_bubble, color: Colors.black54),
+      ),
     );
   }
 }
