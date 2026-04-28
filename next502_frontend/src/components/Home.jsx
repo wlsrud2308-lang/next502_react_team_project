@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // 페이지 이동을 위한 훅 추가
 import Header from './layout/Header';
 import Footer from './layout/Footer';
 
 function Home() {
-  // 실제 사이트의 카테고리 구성을 반영
+  const navigate = useNavigate(); // 이동 함수 선언
+
   const warehouses = [
     {
       name: '부산항 신항 배후단지 창고',
@@ -50,7 +52,7 @@ function Home() {
   ];
 
   const [page, setPage] = useState(0);
-  const pageSize = 3; // 한 페이지에 3개씩 (데스크탑 기준 최적)
+  const pageSize = 3;
   const maxPage = Math.ceil(warehouses.length / pageSize) - 1;
 
   const currentItems = warehouses.slice(page * pageSize, page * pageSize + pageSize);
@@ -75,7 +77,7 @@ function Home() {
             부산광역시 내 모든 창고 정보를 스마트하게 연결합니다.
           </p>
 
-          {/* 통합 검색창 (원본 사이트 핵심 기능) */}
+          {/* 통합 검색창 (클릭 시 이동 기능 추가) */}
           <div
             className="card border-0 shadow-lg p-2 mx-auto"
             style={{ maxWidth: '900px', borderRadius: '15px' }}
@@ -107,6 +109,7 @@ function Home() {
                   <button
                     className="btn btn-primary w-100 py-3 fw-bold shadow-sm"
                     style={{ borderRadius: '10px' }}
+                    onClick={() => navigate('/search')} // 검색 페이지로 이동
                   >
                     검색
                   </button>
@@ -117,7 +120,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ================= 2. 현황 데이터 섹션 (신규 추가) ================= */}
+      {/* ================= 2. 현황 데이터 섹션 ================= */}
       <section className="bg-white py-4 shadow-sm border-bottom">
         <div className="container">
           <div className="row text-center">
@@ -185,7 +188,10 @@ function Home() {
                     </p>
                     <div className="d-flex justify-content-between align-items-center border-top pt-3">
                       <span className="text-primary fw-bold">{w.area}</span>
-                      <button className="btn btn-sm btn-outline-primary rounded-pill">
+                      <button
+                        className="btn btn-sm btn-outline-primary rounded-pill"
+                        onClick={() => navigate('/search')} // 상세보기 클릭 시 이동
+                      >
                         상세보기
                       </button>
                     </div>
@@ -231,20 +237,22 @@ function Home() {
                   <span className="fw-bold">창고등록</span>
                 </div>
               </div>
-              <div className="col-6">
-                <div className="bg-info text-white p-4 rounded-4 text-center cursor-pointer hover-opacity">
+              {/* 창고찾기 연결 */}
+              <div className="col-6" onClick={() => navigate('/search')}>
+                <div className="bg-info text-white p-4 rounded-4 text-center cursor-pointer hover-opacity h-100">
                   <i className="bi bi-search fs-1 d-block mb-2"></i>
                   <span className="fw-bold">창고찾기</span>
                 </div>
               </div>
-              <div className="col-6">
-                <div className="bg-dark text-white p-4 rounded-4 text-center cursor-pointer hover-opacity">
+              {/* 지도검색 연결 */}
+              <div className="col-6" onClick={() => navigate('/search')}>
+                <div className="bg-dark text-white p-4 rounded-4 text-center cursor-pointer hover-opacity h-100">
                   <i className="bi bi-map fs-1 d-block mb-2"></i>
                   <span className="fw-bold">지도검색</span>
                 </div>
               </div>
               <div className="col-6">
-                <div className="bg-secondary text-white p-4 rounded-4 text-center cursor-pointer hover-opacity">
+                <div className="bg-secondary text-white p-4 rounded-4 text-center cursor-pointer hover-opacity h-100">
                   <i className="bi bi-question-circle fs-1 d-block mb-2"></i>
                   <span className="fw-bold">이용가이드</span>
                 </div>
@@ -256,7 +264,6 @@ function Home() {
 
       <Footer />
 
-      {/* CSS 스타일 주입 (리액트 방식) */}
       <style
         dangerouslySetInnerHTML={{
           __html: `

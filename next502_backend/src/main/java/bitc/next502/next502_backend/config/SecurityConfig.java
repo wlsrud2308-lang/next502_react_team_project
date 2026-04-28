@@ -65,6 +65,7 @@ public class SecurityConfig {
         .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
         .authorizeHttpRequests(authRequests -> authRequests
             .requestMatchers("/auth/**", "/board", "/h2-console/**", "/ocr/**").permitAll()
+            .requestMatchers("/warehouse/search").permitAll()
             .requestMatchers("/admin/**").hasRole("ADMIN")
             .requestMatchers("/member/**").hasAnyRole("MEMBER", "PROVIDER", "ADMIN")
             .anyRequest().authenticated())
