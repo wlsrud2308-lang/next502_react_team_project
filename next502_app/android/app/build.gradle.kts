@@ -1,7 +1,17 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+// 1. .env 파일 읽기 로직 (맨 위에 배치)
+val env = Properties()
+val envFile = rootProject.file("../.env")
+if (envFile.exists()) {
+    envFile.withInputStream { env.load(it) }
+}
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Flutter Gradle Plugin은 반드시 Android/Kotlin 플러그인 다음에 와야 함
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -20,20 +30,22 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // 고유한 Application ID
         applicationId = "com.example.next502_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // 2. AndroidManifest에서 사용할 수 있도록 변수 주입
+        // .env 파일에서 NAVER_MAP_CLIENT_ID 값을 가져오며, 없으면 빈 값을 넣음
+        manifestPlaceholders["NAVER_MAP_CLIENT_ID"] = env.getProperty("NAVER_MAP_CLIENT_ID") ?: ""
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // 출시용 서명 설정이 생략되었으므로 디버그 키를 임시 사용
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -41,4 +53,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // 필요한 추가 의존성이 있다면 여기에 추가
 }
