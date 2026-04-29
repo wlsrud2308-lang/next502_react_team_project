@@ -37,23 +37,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // 1. 과거 내역 로드 (URL 수정 완료)
   Future<void> _fetchChatHistory() async {
-    try {
-      // 주소를 서버 API 경로에 맞게 수정했습니다.
-      final response = await http.get(
-        Uri.parse('http://10.0.2{widget.chatRoomId}/messages'),
-      );
+    final auth = context.read<AuthProvider>();
 
-      if (response.statusCode == 200) {
-        final data = json.decode(utf8.decode(response.bodyBytes));
-        // Slice 객체 내부의 content 추출
-        final List<dynamic> history = data['content'] ?? [];
+    final String? token = auth.token;
 
-        setState(() {
-          _messages.addAll(history.map((e) => ChatMessageModel.fromJson(e)).toList());
-        });
-      }
-    } catch (e) {
-      debugPrint("과거 내역 로드 에러: $e");
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8080/chat/room/${widget.chatRoomId}/messages'),
+          headers: {'Authorization': 'Bearer $token',
+          },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(utf8.decode(response.bodyBytes));
+      final List<dynamic> content = data['content'] ?? []; // Slice 객체 대응
+
+      setState(() {
+        _messages.clear(); // 중복 방지
+        // 서버에서 준 과거 내역을 모델로 변환하여 리스트에 담음
+        _messages.addAll(content.map((e) => ChatMessageModel.fromJson(e)).toList());
+      });
     }
   }
 
@@ -91,8 +93,8 @@ class _ChatScreenState extends State<ChatScreen> {
     stompClient.send(
       destination: '/pub/chat/message',
       body: json.encode({
-        'chatRoom': {'chatRoomId': widget.chatRoomId},
-        'sender': {'id': auth.userId},
+        'chatRoomId': widget.chatRoomId,
+        'senderId': auth.userId,
         'message': _controller.text.trim(),
         'chatType': 'TEXT',
       }),

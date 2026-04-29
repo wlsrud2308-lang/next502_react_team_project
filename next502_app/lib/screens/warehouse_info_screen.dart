@@ -152,7 +152,7 @@ class WarehouseInfoScreen extends StatelessWidget {
                   const Text("상세 설명", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Text(
-                    warehouse.detail?.description ?? "등록된 상세 설명이 없습니다.",
+                    warehouse.description ?? "등록된 상세 설명이 없습니다.",
                     style: const TextStyle(height: 1.6, color: Colors.black87),
                   ),
                   const SizedBox(height: 100),

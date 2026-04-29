@@ -69,7 +69,9 @@ public class SecurityConfig {
                     .requestMatchers("/ws-stomp/**").permitAll()
                     .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 
-                    .requestMatchers("/chat/**").permitAll()
+                    .requestMatchers("/chat/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
+
+
                     .requestMatchers("/member/**", "/api/member/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
                     .anyRequest().authenticated())
 

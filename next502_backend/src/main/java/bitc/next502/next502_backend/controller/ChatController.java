@@ -1,5 +1,7 @@
 package bitc.next502.next502_backend.controller;
 
+import bitc.next502.next502_backend.domain.dto.ChatMessageDTO;
+import bitc.next502.next502_backend.domain.dto.ChatRoomDTO;
 import bitc.next502.next502_backend.domain.entity.ChatMessageEntity;
 import bitc.next502.next502_backend.domain.entity.ChatRoomEntity;
 import bitc.next502.next502_backend.domain.entity.MemberEntity;
@@ -21,32 +23,65 @@ public class ChatController {
 
     private final ChatService chatService;
 
-
+    // 1. 채팅방 생성 (이미 수정하신 대로 유지)
     @PostMapping("/room/{warehouseId}")
-    public ResponseEntity<ChatRoomEntity> createRoom(
+    public ResponseEntity<ChatRoomDTO> createRoom(
             @PathVariable("warehouseId") Long warehouseId,
             @AuthenticationPrincipal MemberEntity member) {
 
-        // 서비스 메서드 파라미터명과 일치시킴
-        return ResponseEntity.ok(chatService.createOrGetRoom(warehouseId, member));
+        ChatRoomEntity room = chatService.createOrGetRoom(warehouseId, member);
+        ChatRoomDTO response = ChatRoomDTO.builder()
+                .chatRoomId(room.getChatRoomId())
+                .warehouseName(room.getWarehouse().getName())
+                .build();
+        return ResponseEntity.ok(response);
     }
 
-    // 2. 나의 채팅방 목록 조회
+    // 2. 나의 채팅방 목록 조회 (DTO 리스트로 변환)
     @GetMapping("/rooms")
-    public ResponseEntity<List<ChatRoomEntity>> getMyRooms(
+    public ResponseEntity<List<ChatRoomDTO>> getMyRooms(
             @AuthenticationPrincipal MemberEntity member) {
-        return ResponseEntity.ok(chatService.getMyChatRooms(member));
+        List<ChatRoomEntity> rooms = chatService.getMyChatRooms(member);
+
+        // 엔티티 리스트를 DTO 리스트로 변환하여 반환
+        List<ChatRoomDTO> response = rooms.stream().map(room -> {
+            // 내가 구매자면 판매자 닉네임을, 판매자면 구매자 닉네임을 추출
+            boolean isMember = room.getMember().getId().equals(member.getId());
+            String opponentNick = isMember ? room.getProvider().getUserNick() : room.getMember().getUserNick();
+
+            return ChatRoomDTO.builder()
+                    .chatRoomId(room.getChatRoomId())
+                    .warehouseName(room.getWarehouse().getName())
+                    .build();
+        }).toList();
+
+        return ResponseEntity.ok(response);
     }
 
-    // 3. 특정 채팅방의 메시지 내역 조회 (페이징/Slice 처리)
+    // 3. 특정 채팅방의 메시지 내역 조회 (Slice<ChatMessageDTO>로 변환)
     @GetMapping("/room/{chatRoomId}/messages")
-    public ResponseEntity<Slice<ChatMessageEntity>> getMessages(
+    public ResponseEntity<Slice<ChatMessageDTO>> getMessages(
             @PathVariable("chatRoomId") Long chatRoomId,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(chatService.getChatMessages(chatRoomId, pageable));
+
+        Slice<ChatMessageEntity> messages = chatService.getChatMessages(chatRoomId, pageable);
+
+        // 메시지 엔티티를 DTO로 변환 (Proxy 에러 원천 차단)
+        Slice<ChatMessageDTO> response = messages.map(msg -> ChatMessageDTO.builder()
+                .id(msg.getId())
+                .chatRoomId(chatRoomId)
+                .senderId(msg.getSender().getId())
+                .senderNick(msg.getSender().getUserNick())
+                .message(msg.getMessage())
+                .chatType(msg.getChatType())
+                .createDate(msg.getCreateDate())
+                .isReadYn(msg.getIsReadYn())
+                .build());
+
+        return ResponseEntity.ok(response);
     }
 
-    // 4. 읽음 처리
+    // 4. 읽음 처리 (기존 유지)
     @PatchMapping("/room/{chatRoomId}/read")
     public ResponseEntity<Void> markAsRead(
             @PathVariable("chatRoomId") Long chatRoomId,

@@ -46,6 +46,8 @@ class ChatInput extends StatelessWidget {
                 child: TextField(
                   controller: controller,
                   maxLines: null, // 내용이 길어지면 자동으로 줄바꿈
+                  onSubmitted: (_) => onSend(),
+                  textInputAction: TextInputAction.send,
                   decoration: const InputDecoration(
                     hintText: "메시지를 입력하세요",
                     hintStyle: TextStyle(fontSize: 14, color: Colors.grey),

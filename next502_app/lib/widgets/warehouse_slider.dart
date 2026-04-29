@@ -99,14 +99,18 @@ class WarehouseSlider extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- 이미지 영역 수정됨 ---
               Container(
                 height: 90,
                 width: double.infinity,
                 color: const Color(0xFFF0F0F0),
-                child: warehouse.images.isNotEmpty
+                child: warehouse.repImageUrl != null && warehouse.repImageUrl!.isNotEmpty
+                    ? Image.network(warehouse.repImageUrl!, fit: BoxFit.cover)
+                    : (warehouse.images.isNotEmpty
                     ? Image.network(warehouse.images[0].imageUrl, fit: BoxFit.cover)
-                    : const Icon(Icons.warehouse, color: Colors.grey, size: 35),
+                    : const Icon(Icons.warehouse, color: Colors.grey, size: 35)),
               ),
+              // -----------------------
               Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Column(

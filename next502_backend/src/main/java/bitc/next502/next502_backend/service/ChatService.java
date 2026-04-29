@@ -1,5 +1,6 @@
 package bitc.next502.next502_backend.service;
 
+import bitc.next502.next502_backend.domain.dto.ChatMessageDTO;
 import bitc.next502.next502_backend.domain.entity.*;
 import bitc.next502.next502_backend.domain.repository.ChatMessageRepository;
 import bitc.next502.next502_backend.domain.repository.ChatRoomRepository;
@@ -31,6 +32,12 @@ public class ChatService {
         // 창고 정보 조회
         WarehouseEntity warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 창고입니다."));
+
+        System.out.println("창고 주인 정보: " + warehouse.getMember());
+
+        if (warehouse.getMember() == null) {
+            throw new IllegalStateException("창고 주인 정보가 없습니다. DB를 확인하세요.");
+        }
 
         // 본인 창고에는 채팅 불가 로직 추가 (선택사항이나 권장)
         if (warehouse.getMember().getId().equals(currentUser.getId())) {
@@ -80,14 +87,14 @@ public class ChatService {
      * 5. 메시지 저장
      */
     @Transactional
-    public ChatMessageEntity saveMessage(Long roomId, Long senderId, String content, ChatType type, String fileUrl) {
+    public ChatMessageDTO saveMessage(Long roomId, Long senderId, String content, ChatType type, String fileUrl) {
         ChatRoomEntity room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
 
         MemberEntity sender = memberRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        ChatMessageEntity message = ChatMessageEntity.builder()
+        ChatMessageEntity messageEntity = ChatMessageEntity.builder()
                 .chatRoom(room)
                 .sender(sender)
                 .message(content)
@@ -96,6 +103,19 @@ public class ChatService {
                 .isReadYn("N")
                 .build();
 
-        return chatMessageRepository.save(message);
+        chatMessageRepository.save(messageEntity);
+
+        // [중요] 저장 후 즉시 DTO로 변환하여 반환
+        return ChatMessageDTO.builder()
+                .id(messageEntity.getId())
+                .chatRoomId(room.getChatRoomId())
+                .senderId(sender.getId())
+                .senderNick(sender.getUserNick()) // Flutter UI에 보낸 사람 이름을 바로 띄우기 위함
+                .message(messageEntity.getMessage())
+                .chatType(messageEntity.getChatType())
+                .fileUrl(messageEntity.getFileUrl())
+                .isReadYn(messageEntity.getIsReadYn())
+                .createDate(messageEntity.getCreateDate()) // 생성 시간 포함
+                .build();
     }
 }

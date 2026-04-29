@@ -6,10 +6,12 @@ class AuthProvider with ChangeNotifier {
   bool _isLoggedIn = false;
   String? _userRole;
   int? _userId;
+  String? _token;
 
   bool get isLoggedIn => _isLoggedIn;
   String? get userRole => _userRole;
   int? get userId => _userId;
+  String? get token => _token;
 
   bool get isProvider => _userRole == 'ROLE_PROVIDER' || _userRole == 'ROLE_ADMIN';
 
@@ -18,7 +20,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> checkLoginStatus() async {
-    String? token = await _storage.read(key: 'accessToken');
+    _token = await _storage.read(key: 'accessToken');
     _userRole = await _storage.read(key: 'userRole');
     String? idStr = await _storage.read(key: 'userId');
     _userId = idStr != null ? int.tryParse(idStr) : null;
@@ -31,7 +33,9 @@ class AuthProvider with ChangeNotifier {
   Future<void> loginSuccess(String accessToken, String role, int id) async {
     await _storage.write(key: 'userRole', value: role);
     await _storage.write(key: 'userId', value: id.toString());
+    await _storage.write(key: 'accessToken', value: accessToken);
 
+    _token = accessToken;
     _isLoggedIn = true;
     _userRole = role;
     _userId = id;
