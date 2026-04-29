@@ -36,7 +36,7 @@ public class MemberService {
     String accessToken = jwtTokenProvider.generateToken(member, Duration.ofMinutes(30));
     RefreshTokenEntity refreshToken = refreshTokenService.generateRefreshToken(member);
 
-    
+
     return ResponseDTO.builder()
             .id(member.getId())
             .accessToken(accessToken)
@@ -120,5 +120,23 @@ public class MemberService {
             .refreshToken(refreshToken)
             .role(member.getRole().name())
             .build();
+  }
+
+  @Transactional
+  public void updateMember(String userId, MemberDTO dto) {
+    MemberEntity member = memberRepository.findByUserId(userId)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+    // 닉네임, 생년월일, 전화번호 등 변경 가능한 필드만 업데이트
+    member.setUserNick(dto.getUserNick());
+    member.setBirthDate(dto.getBirthDate());
+    member.setTel(dto.getTel());
+
+    
+    if (dto.getUserPw() != null && !dto.getUserPw().isBlank()) {
+      member.setPassword(passwordEncoder.encode(dto.getUserPw()));
+    }
+
+    memberRepository.save(member);
   }
 }

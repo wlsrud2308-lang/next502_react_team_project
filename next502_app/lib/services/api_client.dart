@@ -87,4 +87,9 @@ class ApiClient {
   Future<void> clearTokens() async {
     await storage.deleteAll();
   }
+
+
+  Future<Response> updateMemberInfo(Map<String, dynamic> data) async {
+    return await dio.put('/api/member/me', data: data);
+  }
 }

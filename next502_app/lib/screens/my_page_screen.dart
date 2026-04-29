@@ -13,8 +13,8 @@ class MyPageScreen extends StatefulWidget {
 class _MyPageScreenState extends State<MyPageScreen> {
   final ApiClient _apiClient = ApiClient();
 
-  bool _isLoading = true; // 데이터를 불러오는 중인지 확인하는 변수
-  Map<String, dynamic>? _memberInfo; // 백엔드에서 받아온 내 정보를 담을 바구니
+  bool _isLoading = true;
+  Map<String, dynamic>? _memberInfo;
 
   @override
   void initState() {
@@ -22,27 +22,31 @@ class _MyPageScreenState extends State<MyPageScreen> {
     _fetchMyInfo();
   }
 
-  // --- 내 정보 불러오는 함수 ---
   Future<void> _fetchMyInfo() async {
     try {
       final response = await _apiClient.getMyInfo();
       if (response.statusCode == 200) {
         setState(() {
-          _memberInfo = response.data; // 바구니에 데이터 담기
+          _memberInfo = response.data;
           _isLoading = false;
         });
       }
     } catch (e) {
       print("내 정보 불러오기 실패: $e");
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("정보를 불러오는데 실패했습니다. 다시 로그인해주세요.")),
         );
       }
     }
+  }
+
+  // 준비 중인 기능 안내용 스낵바
+  void _showComingSoon() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("열심히 준비 중인 기능입니다!")),
+    );
   }
 
   @override
@@ -58,22 +62,24 @@ class _MyPageScreenState extends State<MyPageScreen> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-
-      // isLoading이 true면 로딩 뺑뺑이
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.deepPurple))
           : SingleChildScrollView(
         child: Column(
           children: [
-            _buildProfileHeader(context), // 프로필 헤더
+            _buildProfileHeader(context),
 
             const Divider(thickness: 8, color: Color(0xFFF5F5F5)),
 
             _buildMenuSection(
               title: "나의 활동",
               items: [
-                _buildMenuItem(Icons.favorite_border, "관심 창고 목록", () {}),
-                _buildMenuItem(Icons.chat_bubble_outline, "채팅 문의 내역", () {}),
+
+                _buildMenuItem(Icons.favorite_border, "관심 창고 목록", () {
+                  Navigator.pushNamed(context, '/favorites');
+                }),
+
+                _buildMenuItem(Icons.chat_bubble_outline, "채팅 문의 내역", _showComingSoon),
               ],
             ),
 
@@ -82,8 +88,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
             _buildMenuSection(
               title: "설정",
               items: [
-                _buildMenuItem(Icons.notifications_none, "알림 설정", () {}),
-                _buildMenuItem(Icons.help_outline, "고객센터", () {}),
+                _buildMenuItem(Icons.notifications_none, "알림 설정", _showComingSoon),
+
+                _buildMenuItem(Icons.help_outline, "고객센터", () {
+                  Navigator.pushNamed(context, '/faq');
+                }),
                 _buildMenuItem(Icons.logout, "로그아웃", () {
                   _showLogoutDialog(context, authProvider);
                 }),
@@ -95,9 +104,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  // 프로필 헤더 위젯
   Widget _buildProfileHeader(BuildContext context) {
-
     String userName = _memberInfo?['name'] ?? '사용자';
     String userRole = _memberInfo?['role'] ?? 'ROLE_MEMBER';
     String? businessName = _memberInfo?['businessName'];
@@ -120,7 +127,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 5),
 
-
                 if (userRole == 'ROLE_PROVIDER' && businessName != null) ...[
                   Text("🏢 $businessName",
                       style: TextStyle(color: Colors.deepPurple.shade700, fontSize: 13, fontWeight: FontWeight.bold)),
@@ -129,7 +135,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
                 GestureDetector(
                   onTap: () {
-                    // TODO: 회원 정보 수정 페이지 이동
+
+                    if (_memberInfo != null) {
+                      Navigator.pushNamed(context, '/editProfile', arguments: _memberInfo);
+                    }
                   },
                   child: const Text("회원 정보 수정 >",
                       style: TextStyle(color: Colors.grey, fontSize: 14)),
@@ -174,10 +183,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소")),
           TextButton(
               onPressed: () async {
-
                 auth.logout();
-                Navigator.pop(context); // 다이얼로그 닫기
-                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false); // 홈으로 이동
+                Navigator.pop(context);
+                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
               },
               child: const Text("확인", style: TextStyle(color: Colors.red))),
         ],

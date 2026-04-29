@@ -17,6 +17,8 @@ import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'package:next502_app/screens/my_page_screen.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
+import 'package:next502_app/screens/edit_profile_screen.dart';
+import 'package:next502_app/screens/favorite_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,6 +63,8 @@ class MyApp extends StatelessWidget {
         '/whInfo': (context) => const WarehouseInfoScreen(),
         '/whMap': (context) => const WarehouseMapScreen(),
         '/faq' : (context) => const FaqScreen(),
+        '/editProfile': (context) => const EditProfileScreen(),
+        '/favorites': (context) => const FavoriteListScreen(),
 
 
         '/chat': (context) {
