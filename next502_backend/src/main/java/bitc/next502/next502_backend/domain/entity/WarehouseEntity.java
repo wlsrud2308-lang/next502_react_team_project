@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "warehouse") // 테이블명 통합
+@Table(name = "warehouses") // 테이블명 통합
 @Getter
 @Setter
 @Builder
