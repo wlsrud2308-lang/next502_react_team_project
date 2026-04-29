@@ -73,6 +73,7 @@ public class AuthController {
 
 
       ResponseDTO responseDTO = ResponseDTO.builder()
+              .id(tokenDTO.getId())
               .accessToken(tokenDTO.getAccessToken())
               .refreshToken(tokenDTO.getRefreshToken())
               .role("ROLE_MEMBER")

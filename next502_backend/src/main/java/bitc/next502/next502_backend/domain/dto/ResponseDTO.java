@@ -11,4 +11,5 @@ public class ResponseDTO {
   private String accessToken;
   private String refreshToken;
   private String role;
+  private Long id;
 }

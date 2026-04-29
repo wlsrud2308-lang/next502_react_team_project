@@ -48,6 +48,7 @@ public class AuthService {
 
         // 4. 생성된 토큰을 TokenDTO에 담아서 반환
         return TokenDTO.builder()
+                .id(member.getId())
                 .grantType("Bearer")
                 .accessToken(accessToken)
                 .accessTokenExpiresIn(Duration.ofDays(1).toMillis())

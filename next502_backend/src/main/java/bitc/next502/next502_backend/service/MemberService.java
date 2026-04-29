@@ -36,6 +36,8 @@ public class MemberService {
     RefreshTokenEntity refreshToken = refreshTokenService.generateRefreshToken(member);
 
     return ResponseDTO.builder()
+            .id(member.getId())
+            .role(member.getRole().name())
             .accessToken(accessToken)
             .refreshToken(refreshToken.getRefreshToken())
             .build();
