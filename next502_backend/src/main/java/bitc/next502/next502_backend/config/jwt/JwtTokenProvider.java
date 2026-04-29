@@ -69,8 +69,10 @@ public class JwtTokenProvider {
   public Authentication getAuthentication(String token) {
     Claims claims = getClaims(token);
 
+    String roleString = claims.get("userRole").toString();
+
     Set<SimpleGrantedAuthority> authorities = Collections.singleton(
-            new SimpleGrantedAuthority(claims.get("userRole").toString())
+            new SimpleGrantedAuthority(roleString)
     );
 
     MemberEntity member = MemberEntity.builder()
@@ -79,7 +81,7 @@ public class JwtTokenProvider {
             .userId(claims.get("userId").toString())
             .userNick(claims.get("userNick").toString())
             .userEmail(claims.get("userEmail").toString())
-            .role(Role.valueOf(claims.get("userRole").toString()))
+            .role(Role.valueOf(roleString))
             .build();
 
     return new UsernamePasswordAuthenticationToken(member, token, authorities);

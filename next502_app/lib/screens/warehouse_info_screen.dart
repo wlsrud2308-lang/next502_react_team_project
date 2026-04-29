@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../models/warehouse_model.dart'; // 모델 import
+import '../models/warehouse_model.dart';
+import 'chat_screen.dart'; // ChatScreen import 확인
 
 class WarehouseInfoScreen extends StatelessWidget {
-  final WarehouseModel? warehouseData; // Map 대신 Model 사용 권장
+  final WarehouseModel? warehouseData;
   final _storage = const FlutterSecureStorage();
 
   const WarehouseInfoScreen({super.key, this.warehouseData});
 
-  // 1. 찜하기(Favorite) 호출 로직 (whInfo 사용)
-  Future<void> _toggleFavorite(BuildContext context, int whInfo) async {
+  // 1. 찜하기(Favorite) 로직
+  Future<void> _toggleFavorite(BuildContext context, int warehouseId) async {
     try {
       String? token = await _storage.read(key: 'accessToken');
-      // 백엔드 주소: /favorite/{whInfo}
+      // 백엔드 주소에 맞게 수정 필요
       final String url = 'http://10.0.2';
 
       final response = await http.post(
@@ -28,20 +29,28 @@ class WarehouseInfoScreen extends StatelessWidget {
       if (response.statusCode == 200) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.body)),
+            SnackBar(content: Text(utf8.decode(response.bodyBytes))),
           );
         }
       }
     } catch (e) {
-      print("찜하기 에러: $e");
+      debugPrint("찜하기 에러: $e");
     }
   }
 
-  // 2. 채팅방 생성 로직 (whInfo 전달)
-  Future<void> _startChat(BuildContext context, int whInfo) async {
+  // 2. 채팅방 생성 및 이동 로직 (수정됨)
+  Future<void> _startChat(BuildContext context, int warehouseId, String warehouseName) async {
+    print("1. 채팅 시작 버튼 클릭됨! warehouseId: $warehouseId"); // 확인용 로그
     try {
       String? token = await _storage.read(key: 'accessToken');
-      final String url = 'http://10.0.2';
+      if (token == null) {
+        print("에러: 토큰이 없습니다. 로그인이 필요합니다.");
+        return;
+      }
+      print("전송 토큰: $token");
+
+      final String url = 'http://10.0.2.2:8080/chat/room/${warehouseId}';
+      print("2. API 호출 주소: $url");
 
       final response = await http.post(
         Uri.parse(url),
@@ -49,26 +58,41 @@ class WarehouseInfoScreen extends StatelessWidget {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({'whInfo': whInfo}), // 서버 전달 키값 whInfo
       );
 
+      print("3. 서버 응답 코드: ${response.statusCode}");
+      print("4. 서버 응답 바디: ${utf8.decode(response.bodyBytes)}");
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> room = json.decode(response.body);
-        final int roomId = room['id'];
+        final Map<String, dynamic> room = json.decode(utf8.decode(response.bodyBytes));
+        final int roomId = room['chatRoomId']; // 서버 엔티티의 PK 필드명 확인
+
+
+        print("5. 화면 이동 시작! roomId: $roomId");
 
         if (context.mounted) {
-          Navigator.pushNamed(context, '/chat', arguments: {'roomId': roomId});
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(
+                chatRoomId: roomId,
+                warehouseName: warehouseName,
+              ),
+            ),
+          );
         }
+      } else {
+        print("6. 서버 에러 발생: ${response.statusCode}");
       }
     } catch (e) {
-      print("채팅방 생성 에러: $e");
+      print("7. 통신 중 예외 발생: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 3. arguments로 넘어온 WarehouseModel 수신
-    final warehouse = ModalRoute.of(context)!.settings.arguments as WarehouseModel;
+    // arguments로 넘어온 데이터를 우선 사용
+    final warehouse = warehouseData ?? ModalRoute.of(context)!.settings.arguments as WarehouseModel;
     final int warehouseId = warehouse.warehouseId;
 
     return Scaffold(
@@ -101,7 +125,6 @@ class WarehouseInfoScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 규모 표시
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -139,6 +162,7 @@ class WarehouseInfoScreen extends StatelessWidget {
           ],
         ),
       ),
+      // 하단 고정 버튼 바
       bottomSheet: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: const BoxDecoration(
@@ -149,7 +173,7 @@ class WarehouseInfoScreen extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {}, // 전화 로직 추가 가능
+                onPressed: () {}, // url_launcher로 전화 연결 가능
                 icon: const Icon(Icons.phone),
                 label: const Text("전화 문의"),
                 style: OutlinedButton.styleFrom(
@@ -162,7 +186,8 @@ class WarehouseInfoScreen extends StatelessWidget {
             const SizedBox(width: 15),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => _startChat(context, warehouseId), // whInfo 전달
+                // [변경] _startChat 함수 호출 시 이름도 함께 전달
+                onPressed: () => _startChat(context, warehouseId, warehouse.name),
                 icon: const Icon(Icons.chat_bubble),
                 label: const Text("채팅 상담"),
                 style: ElevatedButton.styleFrom(
@@ -190,6 +215,7 @@ class WarehouseInfoScreen extends StatelessWidget {
     );
   }
 }
+
 
 
 
