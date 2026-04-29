@@ -13,7 +13,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoomEntity, Long> 
 
     // 1. 기존 방 존재 여부 확인
     @Query("SELECT r FROM ChatRoomEntity r " +
-            "WHERE r.warehouse.warehouse_id = :warehouseId " +
+            "WHERE r.warehouse.warehouseId = :warehouseId " +
             "AND r.member.id = :memberId")
     Optional<ChatRoomEntity> findExistRoom(@Param("warehouseId") Long warehouseId, @Param("memberId") Long memberId);
 
