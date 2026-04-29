@@ -8,8 +8,9 @@ import lombok.*;
 @Builder
 public class ResponseDTO {
 
+  private Long id;
   private String accessToken;
   private String refreshToken;
   private String role;
-  private Long id;
+
 }

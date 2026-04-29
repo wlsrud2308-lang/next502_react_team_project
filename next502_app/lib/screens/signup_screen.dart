@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:next502_app/providers/auth_provider.dart';
 import 'package:next502_app/services/api_client.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -9,7 +12,7 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  String _userRole = "BUYER"; // 기본값 일반회원
+  String _userRole = "BUYER";
 
   final _idController = TextEditingController();
   final _pwController = TextEditingController();
@@ -20,17 +23,15 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
 
-  // --- OCR 결과 저장을 위한 변수 추가 ---
   String? _businessName;
   String? _businessNumber;
   String? _businessAddress;
   bool _isOcrVerified = false;
+  bool _isSubmitting = false;
 
   final ApiClient _apiClient = ApiClient();
 
-  // OCR 화면으로 이동하여 결과 받아오기
   Future<void> _navigateToOcr() async {
-
     final result = await Navigator.pushNamed(context, '/ocr_verify');
 
     if (result != null && result is Map<String, dynamic>) {
@@ -40,50 +41,80 @@ class _SignupScreenState extends State<SignupScreen> {
         _businessAddress = result['businessAddress'];
         _isOcrVerified = true;
 
-        // OCR로 추출된 대표자명을 이름 필드에 자동 입력
         if (result['representativeName'] != null) {
           _nameController.text = result['representativeName'];
         }
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("사업자 정보가 인증되었습니다."), backgroundColor: Colors.green),
       );
     }
   }
 
-  // 회원가입 처리
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+    );
+  }
+
+  String? _formatBirth(String input) {
+    final digitsOnly = input.replaceAll('-', '');
+    if (RegExp(r'^\d{8}$').hasMatch(digitsOnly)) {
+      return '${digitsOnly.substring(0, 4)}-${digitsOnly.substring(4, 6)}-${digitsOnly.substring(6, 8)}';
+    }
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(input)) {
+      return input;
+    }
+    return null;
+  }
+
   Future<void> _handleSignup() async {
-    // 1. 공통 유효성 검사
-    if (_pwController.text != _pwConfirmController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("비밀번호가 일치하지 않습니다."), backgroundColor: Colors.redAccent),
-      );
-      return;
+    if (_isSubmitting) return;
+
+    final id = _idController.text.trim();
+    final pw = _pwController.text;
+    final pwConfirm = _pwConfirmController.text;
+    final name = _nameController.text.trim();
+    final nick = _nickController.text.trim();
+    final birth = _birthController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (id.isEmpty) return _showError("아이디를 입력하세요.");
+    if (pw.isEmpty) return _showError("비밀번호를 입력하세요.");
+    if (pw != pwConfirm) return _showError("비밀번호가 일치하지 않습니다.");
+    if (name.isEmpty) return _showError("이름을 입력하세요.");
+    if (nick.isEmpty) return _showError("닉네임을 입력하세요.");
+    if (birth.isEmpty) return _showError("생년월일을 입력하세요.");
+
+    final birthFormatted = _formatBirth(birth);
+    if (birthFormatted == null) {
+      return _showError("생년월일을 8자리 숫자 또는 YYYY-MM-DD로 입력하세요.");
     }
 
-    // 2. 공급자일 경우 OCR 인증 여부 확인
+    if (phone.isEmpty) return _showError("전화번호를 입력하세요.");
+
     if (_userRole == "PROVIDER" && !_isOcrVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("임대인 가입을 위해 사업자 인증이 필요합니다."), backgroundColor: Colors.orange),
-      );
-      return;
+      return _showError("임대인 가입을 위해 사업자 인증이 필요합니다.");
     }
+
+    setState(() => _isSubmitting = true);
 
     try {
       String backendRole = (_userRole == "PROVIDER") ? "ROLE_PROVIDER" : "ROLE_MEMBER";
 
-      // 3. 전송 데이터 구성 (OCR 데이터 포함)
       final userData = {
-        "userId": _idController.text,
-        "userPw": _pwController.text,
-        "userEmail": _emailController.text,
-        "userNick": _nickController.text,
-        "name": _nameController.text,
-        "birthDate": _birthController.text,
-        "tel": _phoneController.text,
+        "userId": id,
+        "userPw": pw,
+        "userEmail": email,
+        "userNick": nick,
+        "name": name,
+        "birthDate": birthFormatted,
+        "tel": phone,
         "role": backendRole,
-        // OCR 추가 정보 (일반회원이면 null로 전송됨)
         "businessName": _businessName,
         "businessNumber": _businessNumber,
         "businessAddress": _businessAddress,
@@ -92,16 +123,59 @@ class _SignupScreenState extends State<SignupScreen> {
       final response = await _apiClient.signup(userData);
 
       if (response.statusCode == 200) {
+
+        if (response.data['accessToken'] == null) {
+          String failMsg = response.data['message']?.toString() ??
+              response.data['error']?.toString() ??
+              "이미 존재하는 사용자이거나 가입에 실패했습니다.";
+          setState(() => _isSubmitting = false);
+          return _showError(failMsg);
+        }
+
+        // 정상 가입 처리
+        final String accessToken = response.data['accessToken'];
+        final String refreshToken = response.data['refreshToken'] ?? "";
+        final String userRole = response.data['role'] ?? 'ROLE_MEMBER';
+
+        await _apiClient.saveTokens(accessToken, refreshToken);
+
+        if (!mounted) return;
+        final int id = (response.data['id'] as num?)?.toInt() ?? 0;
+        await context.read<AuthProvider>().loginSuccess(accessToken, userRole, id);
+
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("회원가입이 완료되었습니다!"), backgroundColor: Colors.deepPurple),
         );
-        // 가입 성공 시 로그인 화면으로 이동
-        Navigator.pushReplacementNamed(context, '/login');
+
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("가입 실패: 입력 정보를 다시 확인해주세요."), backgroundColor: Colors.redAccent),
-      );
+      if (e is DioException) {
+
+        print('=== [회원가입 에러 디버깅] ===');
+        print('상태 코드: ${e.response?.statusCode}');
+        print('응답 데이터: ${e.response?.data}');
+        print('데이터 타입: ${e.response?.data.runtimeType}');
+        print('=============================');
+
+        String errorMessage = "가입에 실패했습니다.";
+        final responseData = e.response?.data;
+
+        if (responseData != null) {
+          if (responseData is String) {
+            errorMessage = responseData;
+          } else if (responseData is Map) {
+            errorMessage = responseData['message']?.toString() ?? responseData['error']?.toString() ?? errorMessage;
+          }
+        }
+        _showError(errorMessage);
+      } else {
+        print('알 수 없는 에러: $e');
+        _showError("가입 처리 중 오류 발생: $e");
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -137,7 +211,7 @@ class _SignupScreenState extends State<SignupScreen> {
             _buildTextField(_nickController, "앱에서 사용할 닉네임을 입력하세요"),
 
             _buildInputLabel("생년월일"),
-            _buildTextField(_birthController, "YYYYMMDD (8자리)", isNumber: true),
+            _buildTextField(_birthController, "YYYYMMDD 또는 YYYY-MM-DD", isNumber: true),
 
             _buildInputLabel("전화번호"),
             _buildTextField(_phoneController, "'-' 없이 숫자만 입력", isNumber: true),
@@ -157,7 +231,6 @@ class _SignupScreenState extends State<SignupScreen> {
               ],
             ),
 
-            // --- 공급자 선택 시 OCR 인증 섹션 표시 ---
             if (_userRole == "PROVIDER") ...[
               const SizedBox(height: 20),
               Container(
@@ -207,12 +280,17 @@ class _SignupScreenState extends State<SignupScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: _handleSignup,
+                onPressed: _isSubmitting ? null : _handleSignup,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.deepPurple,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text("가입하기", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: _isSubmitting
+                    ? const SizedBox(
+                  width: 22, height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+                    : const Text("가입하기", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 20),
@@ -222,7 +300,6 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-
   Widget _buildSelectionButton(String role, String label) {
     bool isSelected = _userRole == role;
     return Expanded(
@@ -230,7 +307,7 @@ class _SignupScreenState extends State<SignupScreen> {
         onPressed: () => setState(() {
           _userRole = role;
           if (role == "BUYER") {
-            _isOcrVerified = false; // 일반회원으로 변경 시 인증 해제
+            _isOcrVerified = false;
           }
         }),
         style: OutlinedButton.styleFrom(

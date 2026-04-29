@@ -41,8 +41,8 @@ public class AuthController {
   @PostMapping("/signup")
   public ResponseEntity<?> signup(@RequestBody MemberDTO member) {
     try {
-      String resData = memberService.signupMember(member);
-      return ResponseEntity.ok().body(resData);
+      ResponseDTO jwtToken = memberService.signupMember(member);
+      return ResponseEntity.ok().body(jwtToken);
     }
     catch (IllegalArgumentException e) {
       String resData = "회원 가입 실패\n" + e.getMessage();
@@ -61,16 +61,13 @@ public class AuthController {
     return ResponseEntity.ok(newAccessToken);
   }
 
-
   @PostMapping("/kakao")
   public ResponseEntity<?> loginWithKakao(@RequestBody KakaoLoginDTO request) {
     log.info("카카오 로그인 요청 진입 - kakaoId: {}, nickname: {}",
             request.getKakaoId(), request.getNickname());
 
     try {
-
       TokenDTO tokenDTO = authService.loginKakao(request);
-
 
       ResponseDTO responseDTO = ResponseDTO.builder()
               .id(tokenDTO.getId())

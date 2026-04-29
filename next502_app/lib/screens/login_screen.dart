@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final ApiClient _apiClient = ApiClient();
 
-  // 1. 일반 로그인 처리 (아이디/비밀번호)
+  // 1. 일반 로그인 처리
   Future<void> _handleLogin() async {
     try {
       final response = await _apiClient.login(_idController.text, _pwController.text);
@@ -27,12 +27,13 @@ class _LoginScreenState extends State<LoginScreen> {
         final String accessToken = response.data['accessToken'];
         final String refreshToken = response.data['refreshToken'] ?? "";
         final String userRole = response.data['role'] ?? 'ROLE_MEMBER';
-        final int id = response.data['id'];
 
         await _apiClient.saveTokens(accessToken, refreshToken);
 
         if (!mounted) return;
 
+        
+        final int id = (response.data['id'] as num?)?.toInt() ?? 0;
         context.read<AuthProvider>().loginSuccess(accessToken, userRole, id);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,7 +54,6 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       OAuthToken token;
 
-      // 카카오톡 설치 여부에 따라 로그인 방식 결정
       if (await isKakaoTalkInstalled()) {
         try {
           token = await UserApi.instance.loginWithKakaoTalk();
@@ -64,13 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
         token = await UserApi.instance.loginWithKakaoAccount();
       }
 
-      // 카카오 사용자 정보 가져오기
       User user = await UserApi.instance.me();
       String nickname = user.kakaoAccount?.profile?.nickname ?? "카카오유저";
 
-
-
-      // 카카오 인증 정보 전송
       final response = await _apiClient.loginWithKakao(
           token.accessToken,
           user.id,
@@ -78,26 +74,22 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200) {
-        // 서버에서 준 우리 앱 전용 JWT 토큰 추출
         final String ourAccessToken = response.data['accessToken'];
         final String ourRefreshToken = response.data['refreshToken'] ?? "";
-        // 카카오 로그인은 기본적으로 ROLE_MEMBER 권한 부여
         final String userRole = response.data['role'] ?? 'ROLE_MEMBER';
 
-        // 토큰 저장
         await _apiClient.saveTokens(ourAccessToken, ourRefreshToken);
-        final int id = response.data['id'];
 
         if (!mounted) return;
 
-        // 상태 관리
+
+        final int id = (response.data['id'] as num?)?.toInt() ?? 0;
         context.read<AuthProvider>().loginSuccess(ourAccessToken, userRole, id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("$nickname님, 환영합니다!"), backgroundColor: Colors.deepPurple),
         );
 
-        // 홈 화면으로 이동
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
 
@@ -186,10 +178,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // 카카오 로그인 버튼
                       _buildSocialIcon("assets/icons/kakao.png", Colors.yellow, _loginWithKakao),
                       const SizedBox(width: 20),
-                      // 네이버 로그인 버튼 (미구현)
                       _buildSocialIcon("assets/icons/naver.png", Colors.green, () {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("네이버 로그인은 준비 중입니다.")));
                       }),
@@ -203,8 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
-  // --- UI 컴포넌트
 
   Widget _buildTextField(String label, TextEditingController controller, bool isPassword) {
     return TextField(
@@ -250,7 +238,6 @@ class _LoginScreenState extends State<LoginScreen> {
         width: 50,
         height: 50,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-
         child: const Icon(Icons.chat_bubble, color: Colors.black54),
       ),
     );

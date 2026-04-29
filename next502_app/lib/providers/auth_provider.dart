@@ -20,9 +20,8 @@ class AuthProvider with ChangeNotifier {
   Future<void> checkLoginStatus() async {
     String? token = await _storage.read(key: 'accessToken');
     _userRole = await _storage.read(key: 'userRole');
-
-    String? storedId = await _storage.read(key: 'userId');
-    _userId = storedId != null ? int.tryParse(storedId) : null;
+    String? idStr = await _storage.read(key: 'userId');
+    _userId = idStr != null ? int.tryParse(idStr) : null;
 
     _isLoggedIn = token != null;
     notifyListeners();
@@ -30,9 +29,8 @@ class AuthProvider with ChangeNotifier {
 
 
   Future<void> loginSuccess(String accessToken, String role, int id) async {
-    await _storage.write(key: 'accessToken', value: accessToken);
     await _storage.write(key: 'userRole', value: role);
-    await _storage.write(key: 'userId', value: id.toString()); // 로컬 저장
+    await _storage.write(key: 'userId', value: id.toString());
 
     _isLoggedIn = true;
     _userRole = role;
@@ -40,8 +38,12 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+
   Future<void> logout() async {
-    await _storage.deleteAll(); // 모든 정보(토큰, 롤, ID) 일괄 삭제
+    await _storage.delete(key: 'accessToken');
+    await _storage.delete(key: 'refreshToken');
+    await _storage.delete(key: 'userRole');
+    await _storage.delete(key: 'userId');
 
     _isLoggedIn = false;
     _userRole = null;

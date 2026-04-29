@@ -28,32 +28,36 @@ public class MemberService {
   private final RefreshTokenService refreshTokenService;
 
   public ResponseDTO getJwtAuthenticate(String userId, String userPw) {
-    Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userId, userPw));
+    Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(userId, userPw));
 
     MemberEntity member = (MemberEntity) authentication.getPrincipal();
 
     String accessToken = jwtTokenProvider.generateToken(member, Duration.ofMinutes(30));
     RefreshTokenEntity refreshToken = refreshTokenService.generateRefreshToken(member);
 
+    
     return ResponseDTO.builder()
             .id(member.getId())
-            .role(member.getRole().name())
             .accessToken(accessToken)
             .refreshToken(refreshToken.getRefreshToken())
+            .role(member.getRole().name())
             .build();
   }
 
-  public String signupMember(MemberDTO member) {
+  @Transactional
+  public ResponseDTO signupMember(MemberDTO member) {
     if (memberRepository.existsByUserId(member.getUserId())) {
       throw new IllegalArgumentException("이미 존재하는 사용자 입니다.");
     }
 
-    if (memberRepository.existsByUserEmail(member.getUserEmail())) {
+    if (member.getUserEmail() != null && !member.getUserEmail().isBlank()
+            && memberRepository.existsByUserEmail(member.getUserEmail())) {
       throw new IllegalArgumentException("이미 존재하는 이메일 입니다.");
     }
 
     String encodedPassword = passwordEncoder.encode(member.getUserPw());
-// 고정해제
+
     Role userRole = member.getRole();
     if (userRole == null || userRole == Role.ROLE_ADMIN) {
       userRole = Role.ROLE_MEMBER;
@@ -72,47 +76,49 @@ public class MemberService {
             .businessNumber(member.getBusinessNumber())
             .businessAddress(member.getBusinessAddress())
             .build();
-//영역
-    memberRepository.save(newMember);
 
-    return "회원 가입 성공";
+    MemberEntity savedMember = memberRepository.save(newMember);
+
+    String accessToken = jwtTokenProvider.generateToken(savedMember, Duration.ofMinutes(30));
+    RefreshTokenEntity refreshToken = refreshTokenService.generateRefreshToken(savedMember);
+
+    return ResponseDTO.builder()
+            .id(savedMember.getId())
+            .accessToken(accessToken)
+            .refreshToken(refreshToken.getRefreshToken())
+            .role(savedMember.getRole().name())
+            .build();
   }
 
-  // --- 마이페이지
   public MemberDTO getMemberInfo(String userId) {
     MemberEntity member = memberRepository.findByUserId(userId)
-            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다: " + userId));
 
     return MemberDTO.builder()
             .userId(member.getUserId())
+            .userEmail(member.getUserEmail())
             .userNick(member.getUserNick())
             .name(member.getName())
             .birthDate(member.getBirthDate())
             .tel(member.getTel())
-            .userEmail(member.getUserEmail())
             .role(member.getRole())
-            // OCR 정보 포함
             .businessName(member.getBusinessName())
             .businessNumber(member.getBusinessNumber())
             .businessAddress(member.getBusinessAddress())
             .build();
   }
 
-
-  @Transactional
-  public void deleteMember(String userId) {
-    MemberEntity member = memberRepository.findByUserId(userId).orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-    memberRepository.delete(member);
-  }
-
   public ResponseDTO refreshAccessToken(String refreshToken) {
-    String newAccessToken = refreshTokenService.findMemberByToken(refreshToken)
-            .map(member -> jwtTokenProvider.generateToken(member, Duration.ofMinutes(30)))
-            .orElseThrow(() -> new IllegalArgumentException("유효하지 않거나 만료된 리프레시 토큰 입니다."));
+    MemberEntity member = refreshTokenService.findMemberByToken(refreshToken)
+            .orElseThrow(() -> new IllegalArgumentException("유효하지 않거나 만료된 RefreshToken 입니다."));
+
+    String newAccessToken = jwtTokenProvider.generateToken(member, Duration.ofMinutes(30));
 
     return ResponseDTO.builder()
+            .id(member.getId())
             .accessToken(newAccessToken)
+            .refreshToken(refreshToken)
+            .role(member.getRole().name())
             .build();
   }
 }
