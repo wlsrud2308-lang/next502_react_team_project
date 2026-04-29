@@ -24,10 +24,8 @@ public class AuthService {
 
     @Transactional
     public TokenDTO loginKakao(KakaoLoginDTO request) {
-        // 1. 카카오 ID로 기존 회원인지 확인
         MemberEntity member = memberRepository.findByKakaoId(request.getKakaoId())
                 .orElseGet(() -> {
-                    // 2. 신규 회원이라면 자동 회원가입 진행
                     String tempPassword = passwordEncoder.encode(UUID.randomUUID().toString());
 
                     MemberEntity newMember = MemberEntity.builder()
@@ -43,11 +41,10 @@ public class AuthService {
                     return memberRepository.save(newMember);
                 });
 
-
         String accessToken = jwtTokenProvider.generateToken(member, Duration.ofDays(1));
 
-        // 4. 생성된 토큰을 TokenDTO에 담아서 반환
         return TokenDTO.builder()
+                .id(member.getId())
                 .grantType("Bearer")
                 .accessToken(accessToken)
                 .accessTokenExpiresIn(Duration.ofDays(1).toMillis())

@@ -25,13 +25,13 @@ void main() async {
   );
   print('내 카카오 해시키: ${await KakaoSdk.origin}');
   runApp(
-      MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => AuthProvider()),
-            ChangeNotifierProvider(create: (_) => WarehouseProvider()),
-          ],
-        child: const MyApp(),
-      ),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => WarehouseProvider()),
+      ],
+      child: const MyApp(),
+    ),
   );
 }
 
@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      // 2. 시작 페이지를 로그인 화면으로 변경
+      // 시작 페이지를 로그인 화면으로 변경
       initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),
@@ -61,12 +61,19 @@ class MyApp extends StatelessWidget {
         '/whInfo': (context) => const WarehouseInfoScreen(),
         '/whMap': (context) => const WarehouseMapScreen(),
         '/faq' : (context) => const FaqScreen(),
-        '/chat' : (context) => const ChatScreen(),
+
+
+        '/chat': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+          return ChatDetailScreen(
+            chatRoomId: args['chatRoomId'] ?? 0,
+            warehouseName: args['warehouseName'] ?? '채팅방',
+          );
+        },
+
         '/pvMain' : (context) => const ProviderMainScreen(),
         '/whList' : (context) => const WarehouseListScreen(),
-
       },
     );
   }
 }
-

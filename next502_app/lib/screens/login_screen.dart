@@ -32,7 +32,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (!mounted) return;
 
-        context.read<AuthProvider>().loginSuccess(accessToken, userRole);
+        final int id = (response.data['id'] as num?)?.toInt() ?? 0;
+        context.read<AuthProvider>().loginSuccess(accessToken, userRole, id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("로그인에 성공했습니다!"), backgroundColor: Colors.deepPurple),
@@ -89,7 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         // 상태 관리
-        context.read<AuthProvider>().loginSuccess(ourAccessToken, userRole);
+        final int id = (response.data['id'] as num?)?.toInt() ?? 0;
+        context.read<AuthProvider>().loginSuccess(ourAccessToken, userRole, id);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("$nickname님, 환영합니다!"), backgroundColor: Colors.deepPurple),
