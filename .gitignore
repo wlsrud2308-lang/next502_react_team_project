@@ -119,9 +119,10 @@ next502_app/android/app/google-services.json
 
 # iOS 보안 및 로컬 설정
 next502_app/ios/Runner/GoogleService-Info.plist
-next502_app/ios/Flutter/Release.xcconfig
-next502_app/ios/Flutter/Debug.xcconfig
-
+# 앞에 폴더명까지 포함하거나, 아예 와일드카드로 지정
+**/ios/Flutter/Debug.xcconfig
+**/ios/Flutter/Release.xcconfig
+**/ios/Flutter/Generated.xcconfig
 # OS 생성 파일
 next502_app/.DS_Store
 
