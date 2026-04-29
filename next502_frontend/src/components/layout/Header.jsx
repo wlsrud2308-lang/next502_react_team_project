@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. useNavigate 임포트
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function Header() {
-  const navigate = useNavigate(); // 2. navigate 함수 선언
+  const navigate = useNavigate();
+  const location = useLocation(); // 현재 경로 파악을 위한 훅
+
   const [activeMenu, setActiveMenu] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // 현재 페이지가 메인 페이지('/')인지 확인하는 변수
+  const isMainPage = location.pathname === '/';
 
   const menuData = [
     {
@@ -20,7 +25,7 @@ function Header() {
     },
     {
       title: '창고 검색',
-      items: [{ name: '창고 검색', link: '/search' }], // 링크를 검색 경로로 설정
+      items: [{ name: '창고 검색', link: '/search' }],
     },
     {
       title: '커뮤니티',
@@ -35,35 +40,47 @@ function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
+      // 스크롤 50px 이상 여부 체크
       setIsScrolled(window.scrollY > 50);
     };
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // --- 스타일 분기 조건 ---
+  // 메인이 아니거나, 메인이면서 스크롤된 경우 => '흰색 배경 스타일' 적용
+  const isWhiteStyle = !isMainPage || isScrolled;
+
+  const navClass = isWhiteStyle ? 'bg-white shadow-sm' : 'bg-transparent';
+  const textColor = isWhiteStyle ? 'text-dark' : 'text-white';
+  const logoImg = isWhiteStyle ? '/logo.png' : '/logo_white.png';
+  const btnClass = isWhiteStyle ? 'btn-outline-primary' : 'btn-outline-light';
+
   return (
     <nav
-      className={`fixed-top py-2 ${isScrolled ? 'bg-white shadow-sm' : 'bg-transparent'}`}
+      className={`fixed-top py-2 ${navClass}`}
       style={{ transition: 'all 0.3s ease', zIndex: 1000 }}
     >
       <div className="container d-flex align-items-center justify-content-between">
-        {/* ================= LOGO & DYNAMIC TEXT (홈으로 이동) ================= */}
+        {/* ================= LOGO & DYNAMIC TEXT ================= */}
         <div
           className="navbar-brand m-0 p-0 d-flex align-items-center"
           style={{ cursor: 'pointer' }}
-          onClick={() => navigate('/')} // 로고 클릭 시 홈 이동
+          onClick={() => navigate('/')}
         >
           <img
-            src={isScrolled ? '/logo.png' : '/logo_white.png'}
+            src={logoImg}
             alt="창고이음 로고"
             style={{
-              width: isScrolled ? '225px' : '120px',
+              width: isWhiteStyle ? '225px' : '120px',
               height: 'auto',
-              transition: 'width 0.3s ease',
+              transition: 'all 0.3s ease',
             }}
           />
 
-          {!isScrolled && (
+          {/* 메인 페이지이면서 스크롤되지 않았을 때만 브랜드 텍스트 노출 (선택 사항) */}
+          {!isWhiteStyle && (
             <div className="ms-2 d-flex flex-column" style={{ lineHeight: '1.1' }}>
               <span className="fw-bold fs-5 text-white">창고이음</span>
             </div>
@@ -80,10 +97,9 @@ function Header() {
               onMouseLeave={() => setActiveMenu(null)}
             >
               <span
-                className={`nav-link fw-bold px-3 py-3 ${isScrolled ? 'text-dark' : 'text-white'}`}
+                className={`nav-link fw-bold px-3 py-3 ${textColor}`}
                 style={{ cursor: 'pointer' }}
                 onClick={() => {
-                  // '창고 검색' 메뉴인 경우 바로 이동
                   if (menu.title === '창고 검색') navigate('/search');
                 }}
               >
@@ -108,7 +124,6 @@ function Header() {
                     href={item.link}
                     className="dropdown-item py-2 px-3 small"
                     onClick={(e) => {
-                      // 내부 경로 이동을 위해 기본 링크 동작 방지 후 navigate 사용
                       if (item.link.startsWith('/')) {
                         e.preventDefault();
                         navigate(item.link);
@@ -126,14 +141,12 @@ function Header() {
         {/* ================= RIGHT SIDE UTILS ================= */}
         <div className="d-flex align-items-center gap-2">
           <button
-            className={`btn btn-sm d-none d-md-block fw-bold px-3 rounded-pill ${
-              isScrolled ? 'btn-outline-primary' : 'btn-outline-light'
-            }`}
+            className={`btn btn-sm d-none d-md-block fw-bold px-3 rounded-pill ${btnClass}`}
           >
             로그인
           </button>
           <button
-            className={`btn btn-sm border-0 d-lg-none ${isScrolled ? 'text-dark' : 'text-white'}`}
+            className={`btn btn-sm border-0 d-lg-none ${textColor}`}
           >
             <span className="fs-3">☰</span>
           </button>
