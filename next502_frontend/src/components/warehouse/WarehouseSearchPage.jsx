@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Form, InputGroup, Button } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom'; // 1. 추가
 import WarehouseList from './WarehouseList';
 import NaverMapContainer from './NaverMapContainer';
 import { fetchWarehouses } from '../../service/ApiService';
@@ -7,9 +8,10 @@ import Header from '../layout/Header.jsx';
 import Footer from '../layout/Footer.jsx';
 
 const WarehouseSearchPage = () => {
+  const navigate = useNavigate(); // 2. 추가
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchName, setSearchName] = useState(''); // 창고명 검색어 상태
+  const [searchName, setSearchName] = useState('');
 
   const handleSearch = useCallback(async (location = '', size = '', name = '') => {
     setLoading(true);
@@ -24,11 +26,15 @@ const WarehouseSearchPage = () => {
     }
   }, []);
 
+  // 3. 클릭 시 상세 페이지로 이동하는 함수 정의
+  const handleWarehouseClick = (id) => {
+    navigate(`/warehouse/${id}`);
+  };
+
   useEffect(() => {
     handleSearch();
   }, [handleSearch]);
 
-  // 검색 실행 함수
   const onExecuteSearch = () => {
     handleSearch('', '', searchName);
   };
@@ -36,7 +42,6 @@ const WarehouseSearchPage = () => {
   return (
     <div className="wrapper">
       <Header />
-
       <main style={{ paddingTop: '100px', paddingBottom: '50px' }}>
         <Container>
           <div className="mb-4">
@@ -48,13 +53,11 @@ const WarehouseSearchPage = () => {
             className="g-0 border shadow-sm rounded-3 overflow-hidden"
             style={{ height: '700px' }}
           >
-            {/* 왼쪽 섹션 */}
             <Col md={5} lg={4} className="d-flex flex-column bg-white border-end h-100">
-              {/* === 여기가 수정된 포인트: FilterBar 대신 직접 구현 === */}
               <div className="p-3 border-bottom bg-white">
                 <InputGroup>
                   <Form.Control
-                    size="lg" // 크기를 크게 키움
+                    size="lg"
                     placeholder="창고명을 입력하세요"
                     value={searchName}
                     onChange={(e) => setSearchName(e.target.value)}
@@ -65,23 +68,26 @@ const WarehouseSearchPage = () => {
                   </Button>
                 </InputGroup>
               </div>
-              {/* ==================================================== */}
 
               <div className="flex-grow-1 overflow-auto p-3 bg-light">
-                <WarehouseList warehouses={warehouses} loading={loading} />
+                {/* 4. onItemClick 프롭스로 함수 전달 */}
+                <WarehouseList
+                  warehouses={warehouses}
+                  loading={loading}
+                  onItemClick={handleWarehouseClick}
+                />
               </div>
             </Col>
 
-            {/* 오른쪽: 지도 영역 (고정) */}
             <Col md={7} lg={8} className="h-100">
               <div style={{ width: '100%', height: '100%' }}>
-                <NaverMapContainer warehouses={warehouses} />
+                {/* 5. 지도 마커 클릭 시에도 이동하려면 여기도 전달 가능 */}
+                <NaverMapContainer warehouses={warehouses} onMarkerClick={handleWarehouseClick} />
               </div>
             </Col>
           </Row>
         </Container>
       </main>
-
       <Footer />
     </div>
   );
