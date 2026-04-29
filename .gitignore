@@ -105,6 +105,26 @@ next502_app/android/.gradle/
 next502_app/app.*.symbols
 next502_app/app.*.map.json
 
+############################################
+# Flutter (next502_app) - Security & Config
+############################################
+# 환경 변수 파일 (API 키 등이 포함됨)
+next502_app/.env*
+next502_app/assets/.env*
+
+# Android 보안 및 로컬 설정
+next502_app/android/local.properties
+next502_app/android/key.properties
+next502_app/android/app/google-services.json
+
+# iOS 보안 및 로컬 설정
+next502_app/ios/Runner/GoogleService-Info.plist
+next502_app/ios/Flutter/Release.xcconfig
+next502_app/ios/Flutter/Debug.xcconfig
+
+# OS 생성 파일
+next502_app/.DS_Store
+
 
 ############################################
 # Misc
