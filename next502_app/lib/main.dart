@@ -61,26 +61,16 @@ class MyApp extends StatelessWidget {
         '/whInfo': (context) => const WarehouseInfoScreen(),
         '/whMap': (context) => const WarehouseMapScreen(),
         '/faq' : (context) => const FaqScreen(),
-<<<<<<< .merge_file_SJznHK
-        '/chat': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return ChatScreen(
-            chatRoomId: args['chatRoomId'],
-            warehouseName: args['warehouseName'],
-          );
-        },
-=======
 
 
         '/chat': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
-          return ChatDetailScreen(
+          return ChatScreen(
             chatRoomId: args['chatRoomId'] ?? 0,
             warehouseName: args['warehouseName'] ?? '채팅방',
           );
         },
 
->>>>>>> .merge_file_qhKPCX
         '/pvMain' : (context) => const ProviderMainScreen(),
         '/whList' : (context) => const WarehouseListScreen(),
       },

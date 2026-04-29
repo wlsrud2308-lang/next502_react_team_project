@@ -179,7 +179,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 Navigator.pop(context); // 다이얼로그 닫기
                 Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false); // 홈으로 이동
               },
-              child: const Text("확정", style: TextStyle(color: Colors.red))),
+              child: const Text("확인", style: TextStyle(color: Colors.red))),
         ],
       ),
     );
