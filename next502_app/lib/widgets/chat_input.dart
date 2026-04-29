@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:next502_app/widgets/chatAttachmentButton.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ChatInput extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
+  final Function(ImageSource) onImagePick;
+  final VoidCallback onVoiceCall;
 
   const ChatInput({
     super.key,
     required this.controller,
     required this.onSend,
+    required this.onImagePick,
+    required this.onVoiceCall,
   });
 
   @override
@@ -27,13 +33,10 @@ class ChatInput extends StatelessWidget {
       child: SafeArea( // 아이폰 하단 바 영역 대응
         child: Row(
           children: [
-            // 1. 추가 기능 버튼 (이미지 등)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: Colors.grey),
-              onPressed: () {
-                // TODO: 이미지 선택 기능 연결
-              },
-            ),
+            ChatAttachmentButton(
+          onImagePick: onImagePick,
+          onVoiceCall: onVoiceCall,
+        ),
 
             // 2. 텍스트 입력창
             Expanded(
