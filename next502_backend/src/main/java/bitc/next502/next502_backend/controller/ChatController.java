@@ -13,6 +13,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.util.List;
 
@@ -89,5 +92,18 @@ public class ChatController {
             @AuthenticationPrincipal MemberEntity member) {
         chatService.markMessagesAsRead(chatRoomId, member);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
+        // 1. ChatService에 파일 저장 로직을 만들거나, 여기서 직접 처리
+        // 지금은 예시로 ChatService에 uploadImage 메서드가 있다고 가정합니다.
+        String imageUrl = chatService.uploadImage(file);
+
+        // 2. Flutter에서 json.decode(response.body)['url'] 로 꺼낼 수 있게 반환
+        Map<String, String> response = new HashMap<>();
+        response.put("url", imageUrl);
+
+        return ResponseEntity.ok(response);
     }
 }

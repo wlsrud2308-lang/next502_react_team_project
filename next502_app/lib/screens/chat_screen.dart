@@ -149,7 +149,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final auth = context.read<AuthProvider>();
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('http://10.0.2'));
+      var request = http.MultipartRequest('POST', Uri.parse('http://10.0.2.2:8080/chat/upload'));
       request.headers['Authorization'] = 'Bearer ${auth.token}';
       request.files.add(await http.MultipartFile.fromPath('file', pickedFile.path));
       var response = await http.Response.fromStream(await request.send());
@@ -167,8 +167,9 @@ class _ChatScreenState extends State<ChatScreen> {
           }),
         );
       }
-    } catch (e) {
-      debugPrint("이미지 업로드 에러: $e");
+    } catch (e, stacktrace) {
+      debugPrint("❌ 이미지 업로드 중 진짜 에러 발생: $e");
+      debugPrint("❌ 상세 스택트레이스: $stacktrace");
     }
   }
 

@@ -35,16 +35,16 @@ void main() async {
     print("❌ .env 로드 실패: $e");
   }
 
-  await FlutterNaverMap().init(
-      clientId: dotenv.env['NAVER_MAP_CLIENT_ID'],
-      onAuthFailed: (ex) => switch (ex) {
-        NQuotaExceededException(:final message) =>
-            print("사용량 초과 (message: $message)"),
-        NUnauthorizedClientException() ||
-        NClientUnspecifiedException() ||
-        NAnotherAuthFailedException() =>
-            print("인증 실패: $ex"),
-      });
+  // await FlutterNaverMap().init(
+  //     clientId: dotenv.env['NAVER_MAP_CLIENT_ID'],
+  //     onAuthFailed: (ex) => switch (ex) {
+  //       NQuotaExceededException(:final message) =>
+  //           print("사용량 초과 (message: $message)"),
+  //       NUnauthorizedClientException() ||
+  //       NClientUnspecifiedException() ||
+  //       NAnotherAuthFailedException() =>
+  //           print("인증 실패: $ex"),
+  //     });
 
   // 4. 카카오 SDK 초기화
   KakaoSdk.init(

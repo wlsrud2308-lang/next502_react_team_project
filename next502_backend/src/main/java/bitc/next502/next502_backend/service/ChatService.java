@@ -11,8 +11,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -119,5 +123,25 @@ public class ChatService {
                 .isReadYn(messageEntity.getIsReadYn())
                 .createDate(messageEntity.getCreateDate()) // 생성 시간 포함
                 .build();
+    }
+    @Transactional
+    public String uploadImage(MultipartFile file) {
+        // 1. 저장할 경로 설정 (예: 프로젝트 루트의 uploads 폴더)
+        String uploadDir = System.getProperty("user.dir") + "/uploads/";
+        File dir = new File(uploadDir);
+        if (!dir.exists()) dir.mkdirs();
+
+        // 2. 파일명 중복 방지 (UUID 사용)
+        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        File dest = new File(uploadDir + fileName);
+
+        try {
+            file.transferTo(dest);
+        } catch (IOException e) {
+            throw new RuntimeException("파일 저장 중 오류가 발생했습니다.");
+        }
+
+        // 3. 에뮬레이터에서 접근 가능한 URL 반환
+        return "http://10.0.2" + fileName;
     }
 }

@@ -65,7 +65,7 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .authorizeHttpRequests(auth -> auth
                     // 1. 누구나 접근 가능한 경로 (로그인, 회원가입, 아이디/비번 찾기, OCR 등)
-                    .requestMatchers("/", "/auth/**", "/api/auth/**", "/ocr/**", "/warehouse/**", "/ws-stomp/**", "/board/**", "/h2-console/**").permitAll()
+                    .requestMatchers("/", "/auth/**", "/api/auth/**", "/ocr/**", "/warehouse/**", "/ws-stomp/**", "/board/**", "/h2-console/**", "/uploads/**").permitAll()
 
                     // 2. 관리자 전용
                     .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
