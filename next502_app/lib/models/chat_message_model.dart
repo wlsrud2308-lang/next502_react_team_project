@@ -5,17 +5,39 @@ class ChatMessageModel {
   final int senderId;
   final String? fileUrl;
   final String createdAt;
+  final String isReadYn;
 
-  ChatMessageModel({required this.id, required this.message, required this.chatType, required this.senderId, this.fileUrl, required this.createdAt});
+  ChatMessageModel({required this.id, required this.message, required this.chatType, required this.senderId, this.fileUrl, required this.createdAt,required this.isReadYn,});
+
+  ChatMessageModel copyWith({
+    int? id,
+    String? message,
+    String? chatType,
+    int? senderId,
+    String? fileUrl,
+    String? createdAt,
+    String? isReadYn,
+  }) {
+    return ChatMessageModel(
+      id: id ?? this.id,
+      message: message ?? this.message,
+      chatType: chatType ?? this.chatType,
+      senderId: senderId ?? this.senderId,
+      fileUrl: fileUrl ?? this.fileUrl,
+      createdAt: createdAt ?? this.createdAt,
+      isReadYn: isReadYn ?? this.isReadYn,
+    );
+  }
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
     return ChatMessageModel(
       id: json['id'] ?? 0,
       message: json['message'] ?? '',
       chatType: json['chatType'] ?? 'TEXT',
-      senderId: json['sender'] != null ? json['sender']['id'] : 0,
+      senderId: json['senderId'] ?? 0,
       fileUrl: json['fileUrl'],
       createdAt: json['createDate'] ?? '',
+      isReadYn: json['isReadYn'] ?? 'N',
     );
   }
 }
