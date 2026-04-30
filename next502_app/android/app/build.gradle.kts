@@ -5,7 +5,7 @@ import java.io.FileInputStream
 val env = Properties()
 val envFile = rootProject.file("../.env")
 if (envFile.exists()) {
-    envFile.withInputStream { env.load(it) }
+    envFile.inputStream().use { env.load(it) }
 }
 
 plugins {
@@ -26,7 +26,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 
     defaultConfig {
