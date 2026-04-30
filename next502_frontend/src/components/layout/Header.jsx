@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 function Header() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoggedIn, logout } = useAuth();
 
   const [activeMenu, setActiveMenu] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
   const isMainPage = location.pathname === '/';
 
-  // --- 메뉴 데이터 수정 (link 연결) ---
   const menuData = [
     {
       title: '창고이음 소개',
@@ -22,9 +23,8 @@ function Header() {
     {
       title: '창고 등록·이용',
       items: [
-        // '창고 이용' 클릭 시 /warehouse/list로 이동하도록 설정
         { name: '창고 이용', link: '/warehouse/list' },
-        { name: '창고 등록', link: '/warehouse/insert' }, // 나중에 등록 페이지 만들면 연결
+        { name: '창고 등록', link: '/warehouse/insert' },
       ],
     },
     {
@@ -50,6 +50,12 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleLogout = () => {
+    logout();
+    alert('로그아웃 되었습니다.');
+    navigate('/');
+  };
+
   const isWhiteStyle = !isMainPage || isScrolled;
   const navClass = isWhiteStyle ? 'bg-white shadow-sm' : 'bg-transparent';
   const textColor = isWhiteStyle ? 'text-dark' : 'text-white';
@@ -62,7 +68,6 @@ function Header() {
       style={{ transition: 'all 0.3s ease', zIndex: 1000 }}
     >
       <div className="container d-flex align-items-center justify-content-between">
-        {/* LOGO */}
         <div
           className="navbar-brand m-0 p-0 d-flex align-items-center"
           style={{ cursor: 'pointer' }}
@@ -72,14 +77,13 @@ function Header() {
             src={logoImg}
             alt="창고이음 로고"
             style={{
-              width: isWhiteStyle ? '200px' : '150px', // 로고 크기 조정
+              width: isWhiteStyle ? '200px' : '150px',
               height: 'auto',
               transition: 'all 0.3s ease',
             }}
           />
         </div>
 
-        {/* PC MENU */}
         <ul className="nav d-none d-lg-flex">
           {menuData.map((menu, idx) => (
             <li
@@ -92,7 +96,6 @@ function Header() {
                 className={`nav-link fw-bold px-3 py-3 ${textColor}`}
                 style={{ cursor: 'pointer' }}
                 onClick={() => {
-                  // 대메뉴 자체 클릭 시 이동 로직 (선택 사항)
                   if (menu.title === '창고 검색') navigate('/search');
                   if (menu.title === '창고 등록·이용') navigate('/warehouse/list');
                 }}
@@ -100,7 +103,6 @@ function Header() {
                 {menu.title}
               </span>
 
-              {/* 2차 메뉴 드롭다운 */}
               <div
                 className={`dropdown-menu border-0 shadow-lg p-3 rounded-3 ${
                   activeMenu === idx ? 'show d-block' : 'd-none'
@@ -113,13 +115,13 @@ function Header() {
                 }}
               >
                 {menu.items.map((item, i) => (
-                  <button // a태그 대신 button이나 navigate 활용 권장
+                  <button
                     key={i}
                     className="dropdown-item py-2 px-3 small border-0 bg-transparent"
                     onClick={() => {
                       if (item.link !== '#') {
                         navigate(item.link);
-                        setActiveMenu(null); // 메뉴 닫기
+                        setActiveMenu(null);
                       }
                     }}
                   >
@@ -131,14 +133,30 @@ function Header() {
           ))}
         </ul>
 
-        {/* RIGHT SIDE UTILS */}
         <div className="d-flex align-items-center gap-2">
-          <button
-            className={`btn btn-sm d-none d-md-block fw-bold px-3 rounded-pill ${btnClass}`}
-            onClick={() => navigate('/login')}
-          >
-            로그인
-          </button>
+          {isLoggedIn ? (
+            <>
+              <button
+                className={`btn btn-sm d-none d-md-block fw-bold px-3 rounded-pill ${btnClass}`}
+                onClick={() => navigate('/api/member/me')}
+              >
+                내 정보
+              </button>
+              <button
+                className={`btn btn-sm d-none d-md-block fw-bold px-3 rounded-pill ${btnClass}`}
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <button
+              className={`btn btn-sm d-none d-md-block fw-bold px-3 rounded-pill ${btnClass}`}
+              onClick={() => navigate('/login')}
+            >
+              로그인
+            </button>
+          )}
           <button className={`btn btn-sm border-0 d-lg-none ${textColor}`}>
             <span className="fs-3">☰</span>
           </button>
