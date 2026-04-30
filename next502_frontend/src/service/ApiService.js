@@ -15,6 +15,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// 로그인
 export const apiLogin = async (userId, userPw) => {
   try {
     const res = await api.post(`/auth/login`, { userId, userPw });
@@ -24,6 +25,7 @@ export const apiLogin = async (userId, userPw) => {
   }
 };
 
+// 카카오 로그인
 export const loginWithKakao = async (accessToken, kakaoId, nickname) => {
   try {
     const res = await api.post('/auth/kakao', {
@@ -37,6 +39,7 @@ export const loginWithKakao = async (accessToken, kakaoId, nickname) => {
   }
 };
 
+// 회원가입
 export const apiSignup = async (userData) => {
   try {
     const res = await api.post(`/auth/signup`, userData);
@@ -52,6 +55,7 @@ export const apiSignup = async (userData) => {
   }
 };
 
+// 사업자등록증 OCR
 export const uploadBusinessLicense = async (imageFile) => {
   try {
     const formData = new FormData();
@@ -69,6 +73,7 @@ export const uploadBusinessLicense = async (imageFile) => {
   }
 };
 
+// 창고 목록 조회
 export const fetchWarehouses = async () => {
   try {
     const res = await api.get('/warehouse');
@@ -78,6 +83,7 @@ export const fetchWarehouses = async () => {
   }
 };
 
+// 창고 상세 조회
 export const fetchWarehouseDetail = async (id) => {
   try {
     const res = await api.get(`/warehouse/${id}`);
@@ -87,6 +93,7 @@ export const fetchWarehouseDetail = async (id) => {
   }
 };
 
+// 내 정보 조회
 export const getMyInfo = async () => {
   try {
     const res = await api.get('/api/member/me');
@@ -96,6 +103,7 @@ export const getMyInfo = async () => {
   }
 };
 
+// 회원 정보 수정
 export const updateMemberInfo = async (data) => {
   try {
     const res = await api.put('/api/member/me', data);
