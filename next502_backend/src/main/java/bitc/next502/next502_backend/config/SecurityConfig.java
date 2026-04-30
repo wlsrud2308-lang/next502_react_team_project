@@ -44,7 +44,7 @@ public class SecurityConfig {
     CorsConfiguration configuration = new CorsConfiguration();
     // 허용할 프론트엔드 주소들
     configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:5174"));
-    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
     configuration.setAllowCredentials(true);
 
