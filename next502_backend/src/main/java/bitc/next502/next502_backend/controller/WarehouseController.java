@@ -27,11 +27,11 @@ public class WarehouseController {
         return ResponseEntity.ok(warehouseService.searchWarehouses(location, size, name));
     }
 
-    // ★ 2. 창고 상세 조회 (리액트 WarehouseDetail 연동용) ★
+    // ★ 2. 창고 상세 조회  ★
     @GetMapping("/{id}")
     public ResponseEntity<WarehouseDTO> getWarehouseDetail(@PathVariable("id") Long id) {
-        // [수정 포인트] getWarehouseById -> getWarehouseDetail로 변경
-        // WarehouseService.java에 정의된 메서드 이름과 동일하게 맞췄습니다.
+
+
         WarehouseDTO warehouseDTO = warehouseService.getWarehouseDetail(id);
         return ResponseEntity.ok(warehouseDTO);
     }

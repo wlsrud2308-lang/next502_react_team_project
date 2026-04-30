@@ -14,16 +14,15 @@ class ChatRoomModel {
   });
 
   factory ChatRoomModel.fromJson(Map<String, dynamic> json, int myId) {
-    final bool isMeBuyer = json['member']['id'] == myId;
-
-    final opponent = isMeBuyer ? json['provider'] : json['member'];
 
     return ChatRoomModel(
       chatRoomId: json['chatRoomId'] as int,
-      warehouseName: json['warehouse']['name'] ?? '',
-      otherUserNick: opponent['userNick'] ?? '이름 없음',
-      lastMessage: json['status'] == 'OPEN' ? '대화 중인 방입니다' : '종료된 대화',
-      updateDate: DateTime.parse(json['updateDate']),
+      warehouseName: json['warehouseName'] ?? '이름 없는 창고',
+      otherUserNick: json['userid'] ?? '익명 사용자',
+      lastMessage: '채팅방 입장하기',
+      updateDate: (json['updateDate'] != null && json['updateDate'] != "")
+          ? DateTime.parse(json['updateDate'])
+          : DateTime.now(),
     );
   }
 }

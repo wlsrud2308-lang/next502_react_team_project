@@ -7,6 +7,7 @@ import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
+
   Optional<MemberEntity> findByUserId(String userId);
 
   Optional<MemberEntity> findByKakaoId(Long kakaoId);
@@ -15,5 +16,7 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
   boolean existsByUserEmail(String userEmail);
 
+  Optional<MemberEntity> findByNameAndTel(String name, String tel);
 
+  Optional<MemberEntity> findByUserIdAndNameAndTel(String userId, String name, String tel);
 }

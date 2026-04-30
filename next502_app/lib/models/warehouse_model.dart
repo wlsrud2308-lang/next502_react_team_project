@@ -12,6 +12,10 @@ class WarehouseModel {
   final String? repImageUrl;
   final List<WarehouseImageModel> images;
 
+  // --- 지도 기능을 위해 추가된 필드 ---
+  final double latitude;  // 위도
+  final double longitude; // 경도
+
   WarehouseModel({
     required this.warehouseId,
     required this.name,
@@ -25,6 +29,9 @@ class WarehouseModel {
     this.amenities,
     this.repImageUrl,
     this.images = const [],
+    // 위/경도 필수값으로 설정 (좌표가 없으면 지도에 표시 불가)
+    required this.latitude,
+    required this.longitude,
   });
 
   factory WarehouseModel.fromJson(Map<String, dynamic> json) {
@@ -32,18 +39,26 @@ class WarehouseModel {
       warehouseId: json['warehouseId'] as int? ?? 0,
       name: json['name'] ?? '',
       address: json['address'] ?? '',
-      // 서버에서 String으로 오는 totalArea 대응
+
+      // 숫자 데이터 안전하게 파싱 (String으로 올 경우 대비)
       totalArea: double.tryParse(json['totalArea']?.toString() ?? '0.0') ?? 0.0,
       occupiedArea: (json['occupiedArea'] as num?)?.toDouble() ?? 0.0,
+
       sizeRank: json['sizeRank'] ?? '',
       storageType: json['storageType'],
       operationStructure: json['operationStructure'],
       description: json['description'],
       amenities: json['amenities'],
       repImageUrl: json['repImageUrl'],
+
+      // 이미지 리스트 매핑
       images: (json['images'] as List? ?? [])
           .map((img) => WarehouseImageModel.fromJson(img))
           .toList(),
+
+      // --- 서버 응답에서 위도, 경도 추출 (변수명은 DB 컬럼명에 맞게 조정하세요) ---
+      latitude: double.tryParse(json['latitude']?.toString() ?? '37.5666') ?? 37.5666,
+      longitude: double.tryParse(json['longitude']?.toString() ?? '126.9784') ?? 126.9784,
     );
   }
 }
@@ -61,4 +76,3 @@ class WarehouseImageModel {
     );
   }
 }
-

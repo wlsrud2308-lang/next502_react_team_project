@@ -61,6 +61,42 @@ public class AuthController {
     return ResponseEntity.ok(newAccessToken);
   }
 
+  // AuthController.java 에 추가
+
+  @PostMapping("/find-id")
+  public ResponseEntity<?> findId(@RequestBody MemberDTO request) {
+    try {
+      // name과 tel로 아이디 찾기
+      String foundId = authService.findUserId(request.getName(), request.getTel());
+      return ResponseEntity.ok().body(Map.of("userId", foundId));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+  }
+
+  @PostMapping("/find-pw")
+  public ResponseEntity<?> findPw(@RequestBody MemberDTO request) {
+    try {
+      // userId, name, tel로 사용자 확인
+      boolean exists = authService.checkUserForPasswordReset(
+              request.getUserId(), request.getName(), request.getTel()
+      );
+      return ResponseEntity.ok().body(exists);
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+  }
+
+  @PutMapping("/reset-pw")
+  public ResponseEntity<?> resetPw(@RequestBody MemberDTO request) {
+    try {
+      authService.resetPassword(request.getUserId(), request.getUserPw());
+      return ResponseEntity.ok().body("비밀번호 재설정 성공");
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(e.getMessage());
+    }
+  }
+
   @PostMapping("/kakao")
   public ResponseEntity<?> loginWithKakao(@RequestBody KakaoLoginDTO request) {
     log.info("카카오 로그인 요청 진입 - kakaoId: {}, nickname: {}",
