@@ -75,9 +75,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      // 시작 페이지를 지도 화면으로 설정하여 연결 확인
-      initialRoute: '/whMap',
-
+      // 시작 페이지를 로그인 화면으로 변경
+      initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
@@ -92,6 +91,7 @@ class MyApp extends StatelessWidget {
         '/faq' : (context) => const FaqScreen(),
         '/editProfile': (context) => const EditProfileScreen(),
         '/favorites': (context) => const FavoriteListScreen(),
+
 
         '/chat': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
