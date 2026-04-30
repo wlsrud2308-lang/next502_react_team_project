@@ -54,6 +54,8 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages.clear();
           _messages.addAll(content.map((e) => ChatMessageModel.fromJson(e)).toList());
         });
+
+        _markAsRead();
       }
     } catch (e) {
       debugPrint("과거 내역 로드 에러: $e");
@@ -96,7 +98,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 // 3. 메시지 리스트에 추가 (실시간 반영)
                 setState(() {
-                  _messages.insert(0, ChatMessageModel.fromJson(data));
+                  final newMessage = ChatMessageModel.fromJson(data);
+                  _messages.insert(0, newMessage);
                 });
 
                 // 4. 내가 메시지를 받았으니 서버에 읽었다고 알림 (Patch API 호출)
@@ -118,7 +121,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _markAsRead() async {
     final auth = context.read<AuthProvider>();
     await http.patch(
-      Uri.parse('http://10.0.2{widget.chatRoomId}/read'),
+      Uri.parse('http://10.0.2.2:8080/chat/room/${widget.chatRoomId}/read'),
       headers: {'Authorization': 'Bearer ${auth.token}'},
     );
   }

@@ -80,7 +80,9 @@ public class ChatService {
      */
     @Transactional
     public void markMessagesAsRead(Long chatRoomId, MemberEntity member) {
-        chatMessageRepository.markAsRead(chatRoomId, member.getId());
+        System.out.println(">>> [읽음 처리 요청] 방ID: " + chatRoomId + ", 유저ID: " + member.getId());
+        int count = chatMessageRepository.markAsRead(chatRoomId, member.getId());
+        System.out.println(">>> [업데이트 결과] " + count + "건의 메시지가 읽음 처리됨");
     }
 
     /**
