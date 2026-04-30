@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // dotenv 패키지
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:next502_app/providers/auth_provider.dart';
 import 'package:next502_app/providers/warehouse_provider.dart';
 import 'package:next502_app/screens/chat_room_list_screen.dart';
@@ -22,11 +24,35 @@ import 'package:next502_app/screens/edit_profile_screen.dart';
 import 'package:next502_app/screens/favorite_list_screen.dart';
 
 void main() async {
+  // 1. 위젯 바인딩 초기화
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. .env 파일 로드 (이 단계가 반드시 선행되어야 함)
+  try {
+    await dotenv.load(fileName: ".env");
+    print("✅ .env 로드 성공");
+  } catch (e) {
+    print("❌ .env 로드 실패: $e");
+  }
+
+  await FlutterNaverMap().init(
+      clientId: dotenv.env['NAVER_MAP_CLIENT_ID'],
+      onAuthFailed: (ex) => switch (ex) {
+        NQuotaExceededException(:final message) =>
+            print("사용량 초과 (message: $message)"),
+        NUnauthorizedClientException() ||
+        NClientUnspecifiedException() ||
+        NAnotherAuthFailedException() =>
+            print("인증 실패: $ex"),
+      });
+
+  // 4. 카카오 SDK 초기화
   KakaoSdk.init(
-    nativeAppKey: 'f9ff9a37a47bb4441f072e20fef5c75f', // 카카오 네이티브 앱 키 등록
+    nativeAppKey: 'f9ff9a37a47bb4441f072e20fef5c75f',
   );
+
   print('내 카카오 해시키: ${await KakaoSdk.origin}');
+
   runApp(
     MultiProvider(
       providers: [
