@@ -43,15 +43,16 @@ public class ChatController {
             @AuthenticationPrincipal MemberEntity member) {
         List<ChatRoomEntity> rooms = chatService.getMyChatRooms(member);
 
-        // 엔티티 리스트를 DTO 리스트로 변환하여 반환
         List<ChatRoomDTO> response = rooms.stream().map(room -> {
-            // 내가 구매자면 판매자 닉네임을, 판매자면 구매자 닉네임을 추출
+            // 내가 구매자(Member)면 상대방은 판매자(Provider), 반대면 구매자(Member)
             boolean isMember = room.getMember().getId().equals(member.getId());
-            String opponentNick = isMember ? room.getProvider().getUserNick() : room.getMember().getUserNick();
+            MemberEntity opponent = isMember ? room.getProvider() : room.getMember();
 
             return ChatRoomDTO.builder()
                     .chatRoomId(room.getChatRoomId())
                     .warehouseName(room.getWarehouse().getName())
+                    .userid(opponent.getUserId())
+                    .updateDate(room.getUpdateDate() != null ? room.getUpdateDate().toString() : "")
                     .build();
         }).toList();
 

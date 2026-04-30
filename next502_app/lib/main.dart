@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:next502_app/providers/auth_provider.dart';
 import 'package:next502_app/providers/warehouse_provider.dart';
+import 'package:next502_app/screens/chat_room_list_screen.dart';
 import 'package:next502_app/screens/chat_screen.dart';
 import 'package:next502_app/screens/faq_screen.dart';
 import 'package:next502_app/screens/find_id_screen.dart';
@@ -65,6 +66,7 @@ class MyApp extends StatelessWidget {
         '/faq' : (context) => const FaqScreen(),
         '/editProfile': (context) => const EditProfileScreen(),
         '/favorites': (context) => const FavoriteListScreen(),
+        '/chatList': (context) => const ChatRoomListScreen(),
 
 
         '/chat': (context) {

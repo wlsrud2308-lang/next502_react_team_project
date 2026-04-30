@@ -10,4 +10,7 @@ import lombok.*;
 public class ChatRoomDTO {
     private Long chatRoomId;
     private String warehouseName;
+    private String userid;
+    private String updateDate;
 }
+

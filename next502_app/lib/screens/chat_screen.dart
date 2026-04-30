@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io'; // 추가: File 객체 사용
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart'; // 추가: ImageSource 오류 해결
+import 'package:next502_app/screens/voice_call_screen.dart';
 import 'package:next502_app/widgets/chatImageBubble.dart';
 import 'package:provider/provider.dart';
 import 'package:chat_bubbles/chat_bubbles.dart';
@@ -72,6 +73,13 @@ class _ChatScreenState extends State<ChatScreen> {
             destination: '/sub/chat/room/${widget.chatRoomId}',
             callback: (frame) {
               if (frame.body != null) {
+                final data = json.decode(frame.body!);
+                final auth = context.read<AuthProvider>();
+
+                // 만약 메시지 타입이 보이스톡 호출이라면?
+                if (data['chatType'] == 'VOICE' && data['senderId'] != auth.userId) {
+                  _showCallAcceptDialog(data['senderName']);
+                }
                 setState(() {
                   _messages.insert(0, ChatMessageModel.fromJson(json.decode(frame.body!)));
                 });
@@ -141,6 +149,39 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  // 보이스톡 수신 팝업
+  void _showCallAcceptDialog(String? senderName) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("보이스톡 요청"),
+        content: Text("${senderName ?? '상대방'}님이 보이스톡을 요청했습니다."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("거절", style: TextStyle(color: Colors.red)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // 팝업 닫기
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VoiceCallScreen(
+                    channelId: widget.chatRoomId.toString(),
+                    userName: widget.warehouseName,
+                  ),
+                ),
+              );
+            },
+            child: const Text("받기"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     stompClient.deactivate();
@@ -200,8 +241,30 @@ class _ChatScreenState extends State<ChatScreen> {
               onSend: _sendMessage,
               onImagePick: _handleImageUpload, // 이미지 함수 연결
               onVoiceCall: () {
-                // TODO: 보이스톡 화면 이동 로직
-                print("보이스톡 호출");
+                final auth = context.read<AuthProvider>();
+
+                // 1. 상대방 앱에 팝업을 띄우기 위한 웹소켓 신호 전송
+                stompClient.send(
+                  destination: '/pub/chat/message',
+                  body: json.encode({
+                    'chatRoomId': widget.chatRoomId,
+                    'senderId': auth.userId,
+                    'senderName': "상대방", // 실제 사용자 이름을 사용하거나 백엔드에서 처리
+                    'message': '보이스톡 요청',
+                    'chatType': 'VOICE',
+                  }),
+                );
+
+                // 2. 내 화면을 통화 화면으로 이동
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VoiceCallScreen(
+                      channelId: widget.chatRoomId.toString(),
+                      userName: widget.warehouseName,
+                    ),
+                  ),
+                );
               },
             ),
           ),
