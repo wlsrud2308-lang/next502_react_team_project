@@ -73,10 +73,10 @@ export const uploadBusinessLicense = async (imageFile) => {
   }
 };
 
-// 창고 목록 조회
+// 창고 목록 조회 (컨트롤러 /search 경로에 맞춤)
 export const fetchWarehouses = async () => {
   try {
-    const res = await api.get('/warehouse');
+    const res = await api.get('/warehouse/search');
     return res.data;
   } catch (err) {
     throw err.response?.data || '창고 정보를 불러오는데 실패했습니다.';
@@ -90,6 +90,16 @@ export const fetchWarehouseDetail = async (id) => {
     return res.data;
   } catch (err) {
     throw err.response?.data || '창고 상세 정보를 불러오는데 실패했습니다.';
+  }
+};
+
+// 창고 등록
+export const apiInsertWarehouse = async (warehouseData) => {
+  try {
+    const res = await api.post('/warehouse/insert', warehouseData);
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || '창고 등록에 실패했습니다.';
   }
 };
 
