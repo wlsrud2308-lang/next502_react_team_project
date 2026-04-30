@@ -22,6 +22,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
+    // --- 기존 카카오 로그인 로직 ---
     @Transactional
     public TokenDTO loginKakao(KakaoLoginDTO request) {
         MemberEntity member = memberRepository.findByKakaoId(request.getKakaoId())
@@ -49,5 +50,30 @@ public class AuthService {
                 .accessToken(accessToken)
                 .accessTokenExpiresIn(Duration.ofDays(1).toMillis())
                 .build();
+    }
+
+    // --- 추가: 아이디 찾기 로직 ---
+    @Transactional(readOnly = true)
+    public String findUserId(String name, String tel) {
+        return memberRepository.findByNameAndTel(name, tel)
+                .map(MemberEntity::getUserId)
+                .orElseThrow(() -> new RuntimeException("일치하는 회원을 찾을 수 없습니다."));
+    }
+
+    // 추가: 비밀번호 재설정 전 사용자 확인 로직
+    @Transactional(readOnly = true)
+    public boolean checkUserForPasswordReset(String userId, String name, String tel) {
+        return memberRepository.findByUserIdAndNameAndTel(userId, name, tel).isPresent();
+    }
+
+    // 추가: 비밀번호 실제 변경 로직
+    @Transactional
+    public void resetPassword(String userId, String newUserPw) {
+        MemberEntity member = memberRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 새로운 비밀번호 암호화 후 저장
+        member.setPassword(passwordEncoder.encode(newUserPw));
+        memberRepository.save(member);
     }
 }
