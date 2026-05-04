@@ -1,6 +1,9 @@
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // dotenv 패키지
 import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:next502_app/api/firebase_options.dart';
 import 'package:next502_app/providers/auth_provider.dart';
 import 'package:next502_app/providers/warehouse_provider.dart';
 import 'package:next502_app/screens/chat_room_list_screen.dart';
@@ -45,6 +48,15 @@ void main() async {
   //       NAnotherAuthFailedException() =>
   //           print("인증 실패: $ex"),
   //     });
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("✅ 파이어베이스 초기화 성공");
+  } catch (e) {
+    print("❌ 파이어베이스 초기화 실패: $e");
+  }
 
   // 4. 카카오 SDK 초기화
   KakaoSdk.init(

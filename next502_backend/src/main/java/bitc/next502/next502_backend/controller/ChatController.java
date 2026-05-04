@@ -1,23 +1,18 @@
 package bitc.next502.next502_backend.controller;
 
-import bitc.next502.next502_backend.domain.dto.ChatMessageDTO;
 import bitc.next502.next502_backend.domain.dto.ChatRoomDTO;
-import bitc.next502.next502_backend.domain.entity.ChatMessageEntity;
 import bitc.next502.next502_backend.domain.entity.ChatRoomEntity;
 import bitc.next502.next502_backend.domain.entity.MemberEntity;
 import bitc.next502.next502_backend.service.ChatService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.Map;
-import java.util.HashMap;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/chat")
@@ -26,7 +21,8 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    // 1. 채팅방 생성 (이미 수정하신 대로 유지)
+    // 1. 채팅방 생성
+    // (채팅 목록을 RDB에서 긁어오거나 트래킹하기 위해 기존 데이터베이스 방 생성 로직 유지)
     @PostMapping("/room/{warehouseId}")
     public ResponseEntity<ChatRoomDTO> createRoom(
             @PathVariable("warehouseId") Long warehouseId,
@@ -40,14 +36,14 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
-    // 2. 나의 채팅방 목록 조회 (DTO 리스트로 변환)
+    // 2. 나의 채팅방 목록 조회
+    // (대화 목록 방의 존재 여부는 기존 RDB 데이터를 사용하여 빠르게 리턴)
     @GetMapping("/rooms")
     public ResponseEntity<List<ChatRoomDTO>> getMyRooms(
             @AuthenticationPrincipal MemberEntity member) {
         List<ChatRoomEntity> rooms = chatService.getMyChatRooms(member);
 
         List<ChatRoomDTO> response = rooms.stream().map(room -> {
-            // 내가 구매자(Member)면 상대방은 판매자(Provider), 반대면 구매자(Member)
             boolean isMember = room.getMember().getId().equals(member.getId());
             MemberEntity opponent = isMember ? room.getProvider() : room.getMember();
 
@@ -62,6 +58,7 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
+<<<<<<< HEAD
     // 3. 특정 채팅방의 메시지 내역 조회 (Slice<ChatMessageDTO>로 변환)
     @GetMapping("/room/{chatRoomId}/messages")
     public ResponseEntity<Slice<ChatMessageDTO>> getMessages(
@@ -95,15 +92,19 @@ public class ChatController {
         return ResponseEntity.ok().build();
     }
 
+=======
+    // 3. 이미지 업로드 (플러터 연동 규격)
+    // 플러터 앱이 쏜 파일을 물리 폴더에 저장하고 URL만 가로채 JSON 객체로 반환합니다.
+>>>>>>> csy/firebase_chat_server
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
-        // 1. ChatService에 파일 저장 로직을 만들거나, 여기서 직접 처리
-        // 지금은 예시로 ChatService에 uploadImage 메서드가 있다고 가정합니다.
+    public ResponseEntity<Map<String, String>> uploadFile(
+            @RequestParam("file") MultipartFile file) {
+
+        // ChatService의 물리 파일 저장 로직 호출 (UUID 처리 필수)
         String imageUrl = chatService.uploadImage(file);
 
-        // 2. Flutter에서 json.decode(response.body)['url'] 로 꺼낼 수 있게 반환
         Map<String, String> response = new HashMap<>();
-        response.put("url", imageUrl);
+        response.put("url", imageUrl); // 플러터 json.decode(response.body)['url'] 규격
 
         return ResponseEntity.ok(response);
     }
