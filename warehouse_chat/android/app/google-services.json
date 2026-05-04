@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "33192132386",
+    "project_id": "warehouse-chat-b3200",
+    "storage_bucket": "warehouse-chat-b3200.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33192132386:android:66832dfe4ab877097baf7b",
+        "android_client_info": {
+          "package_name": "com.bitc.warehouse_chat.warehouse_chat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCx2-gaIQWZgnakC48_Z8Z7OCzkC_aRTk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
