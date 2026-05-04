@@ -46,6 +46,8 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     // Source: https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-gson
     implementation 'io.jsonwebtoken:jjwt-gson:0.12.6'
+    // Source: https://mvnrepository.com/artifact/com.google.firebase/firebase-admin
+    implementation 'com.google.firebase:firebase-admin:9.8.0'
 }
 
 tasks.named('test') {

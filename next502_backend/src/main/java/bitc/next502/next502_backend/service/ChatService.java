@@ -1,14 +1,13 @@
 package bitc.next502.next502_backend.service;
 
-import bitc.next502.next502_backend.domain.dto.ChatMessageDTO;
-import bitc.next502.next502_backend.domain.entity.*;
-import bitc.next502.next502_backend.domain.repository.ChatMessageRepository;
+import bitc.next502.next502_backend.domain.entity.ChatRoomEntity;
+import bitc.next502.next502_backend.domain.entity.MemberEntity;
+import bitc.next502.next502_backend.domain.entity.WarehouseEntity;
 import bitc.next502.next502_backend.domain.repository.ChatRoomRepository;
-import bitc.next502.next502_backend.domain.repository.MemberRepository;
 import bitc.next502.next502_backend.domain.repository.WarehouseRepository;
+import com.google.firebase.auth.FirebaseAuth; // 👈 추가
+import com.google.firebase.auth.FirebaseAuthException; // 👈 추가
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,37 +23,42 @@ import java.util.UUID;
 public class ChatService {
 
     private final ChatRoomRepository chatRoomRepository;
-    private final ChatMessageRepository chatMessageRepository;
     private final WarehouseRepository warehouseRepository;
-    private final MemberRepository memberRepository;
 
     /**
-     * 1. 채팅방 생성 또는 기존 방 조회
+     * 1. ⚠️ [추가] Firebase 인증을 위한 커스텀 토큰을 생성합니다.
+     * 플러터 앱이 Firestore에 접근하기 위해 이 토큰을 받아 로그인을 수행합니다.
+     */
+    public String createFirebaseCustomToken(String userId) {
+        try {
+            // Firebase Admin SDK를 사용하여 사용자의 UID를 기반으로 Custom Token 생성
+            return FirebaseAuth.getInstance().createCustomToken(userId);
+        } catch (FirebaseAuthException e) {
+            throw new RuntimeException("파이어베이스 토큰 발급에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 2. 채팅방 생성 또는 기존 방 조회 (MySQL)
      */
     @Transactional
     public ChatRoomEntity createOrGetRoom(Long warehouseId, MemberEntity currentUser) {
-        // 창고 정보 조회
         WarehouseEntity warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 창고입니다."));
-
-        System.out.println("창고 주인 정보: " + warehouse.getMember());
 
         if (warehouse.getMember() == null) {
             throw new IllegalStateException("창고 주인 정보가 없습니다. DB를 확인하세요.");
         }
 
-        // 본인 창고에는 채팅 불가 로직 추가 (선택사항이나 권장)
         if (warehouse.getMember().getId().equals(currentUser.getId())) {
             throw new IllegalStateException("본인의 창고에는 상담을 신청할 수 없습니다.");
         }
 
-        // [수정] ChatRoomEntity 필드명에 맞춰 조회 (buyer -> member)
-        // 리포지토리의 findExistRoom 메서드 정의도 이에 맞춰져 있어야 합니다.
         return chatRoomRepository.findExistRoom(warehouseId, currentUser.getId())
                 .orElseGet(() -> {
                     ChatRoomEntity newRoom = ChatRoomEntity.builder()
-                            .member(currentUser) // buyer -> member로 변경
-                            .provider(warehouse.getMember()) // 창고 주인
+                            .member(currentUser)
+                            .provider(warehouse.getMember())
                             .warehouse(warehouse)
                             .status("OPEN")
                             .build();
@@ -63,75 +67,21 @@ public class ChatService {
     }
 
     /**
-     * 2. 로그인한 유저의 채팅방 목록 조회
+     * 3. 로그인한 유저의 채팅방 목록 조회 (MySQL)
      */
     public List<ChatRoomEntity> getMyChatRooms(MemberEntity member) {
-        // 리포지토리에서 MemberEntity의 ID를 사용하여 내가 구매자거나 판매자인 방을 모두 찾음
         return chatRoomRepository.findAllMyRooms(member);
     }
 
     /**
-     * 3. 채팅 내역 조회 (페이징)
+     * 4. 이미지 업로드 (로컬 저장 및 URL 리턴)
      */
-    public Slice<ChatMessageEntity> getChatMessages(Long chatRoomId, Pageable pageable) {
-        // ChatMessageEntity에 chatRoomId 필드가 없다면
-        // findByChatRoom_ChatRoomIdOrderByIdDesc 처럼 연관관계 경로를 명시해야 할 수 있습니다.
-        return chatMessageRepository.findByChatRoom_ChatRoomIdOrderByIdDesc(chatRoomId, pageable);
-    }
-
-    /**
-     * 4. 읽음 처리
-     */
-    @Transactional
-    public void markMessagesAsRead(Long chatRoomId, MemberEntity member) {
-        System.out.println(">>> [읽음 처리 요청] 방ID: " + chatRoomId + ", 유저ID: " + member.getId());
-        int count = chatMessageRepository.markAsRead(chatRoomId, member.getId());
-        System.out.println(">>> [업데이트 결과] " + count + "건의 메시지가 읽음 처리됨");
-    }
-
-    /**
-     * 5. 메시지 저장
-     */
-    @Transactional
-    public ChatMessageDTO saveMessage(Long roomId, Long senderId, String content, ChatType type, String fileUrl) {
-        ChatRoomEntity room = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
-
-        MemberEntity sender = memberRepository.findById(senderId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-
-        ChatMessageEntity messageEntity = ChatMessageEntity.builder()
-                .chatRoom(room)
-                .sender(sender)
-                .message(content)
-                .chatType(type)
-                .fileUrl(fileUrl)
-                .isReadYn("N")
-                .build();
-
-        chatMessageRepository.save(messageEntity);
-
-        // [중요] 저장 후 즉시 DTO로 변환하여 반환
-        return ChatMessageDTO.builder()
-                .id(messageEntity.getId())
-                .chatRoomId(room.getChatRoomId())
-                .senderId(sender.getId())
-                .senderNick(sender.getUserNick()) // Flutter UI에 보낸 사람 이름을 바로 띄우기 위함
-                .message(messageEntity.getMessage())
-                .chatType(messageEntity.getChatType())
-                .fileUrl(messageEntity.getFileUrl())
-                .isReadYn(messageEntity.getIsReadYn())
-                .createDate(messageEntity.getCreateDate()) // 생성 시간 포함
-                .build();
-    }
     @Transactional
     public String uploadImage(MultipartFile file) {
-        // 1. 저장할 경로 설정 (예: 프로젝트 루트의 uploads 폴더)
-        String uploadDir = System.getProperty("user.dir") + "/uploads/";
+        String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator;
         File dir = new File(uploadDir);
         if (!dir.exists()) dir.mkdirs();
 
-        // 2. 파일명 중복 방지 (UUID 사용)
         String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
         File dest = new File(uploadDir + fileName);
 
@@ -141,7 +91,7 @@ public class ChatService {
             throw new RuntimeException("파일 저장 중 오류가 발생했습니다.");
         }
 
-        // 3. 에뮬레이터에서 접근 가능한 URL 반환
-        return "http://10.0.2" + fileName;
+        // 안드로이드 에뮬레이터 접근용 URL 반환
+        return "http://10.0.2.2:8080/uploads/" + fileName;
     }
 }

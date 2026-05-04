@@ -13,14 +13,21 @@ class ChatRoomModel {
     required this.updateDate,
   });
 
-  factory ChatRoomModel.fromJson(Map<String, dynamic> json, int myId) {
+  factory ChatRoomModel.fromJson(Map<String, dynamic> json) {
+    // 1. chatRoomId가 String으로 올 경우를 대비한 안전한 파싱
+    final dynamic rawRoomId = json['chatRoomId'];
+    final int parsedRoomId = rawRoomId is int
+        ? rawRoomId
+        : int.tryParse(rawRoomId?.toString() ?? '') ?? 0;
 
     return ChatRoomModel(
-      chatRoomId: json['chatRoomId'] as int,
+      chatRoomId: parsedRoomId,
       warehouseName: json['warehouseName'] ?? '이름 없는 창고',
       otherUserNick: json['userid'] ?? '익명 사용자',
-      lastMessage: '채팅방 입장하기',
-      updateDate: (json['updateDate'] != null && json['updateDate'] != "")
+      lastMessage: json['lastMessage'] ?? '',
+
+      // 2. 문자열 'null'이 들어오는 경우까지 완벽 방어
+      updateDate: (json['updateDate'] != null && json['updateDate'] != "" && json['updateDate'] != "null")
           ? DateTime.parse(json['updateDate'])
           : DateTime.now(),
     );
