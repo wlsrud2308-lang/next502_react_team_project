@@ -198,7 +198,7 @@ function WarehouseInsert() {
                     <h5 className="fw-bold mb-0">규격 및 운영 정보</h5>
                   </div>
                   <div className="card-body p-4">
-                    {/* 4단(가로) 배치로 공간 효율 극대화 */}
+
                     <div className="row g-4">
                       <div className="col-md-3 col-sm-6">
                         <label className="form-label fw-semibold text-dark small">
@@ -281,7 +281,7 @@ function WarehouseInsert() {
                     <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
                       <div className="card-header bg-white border-bottom-0 pt-4 pb-0 px-4 d-flex align-items-center">
                         <CheckCircle2 className="text-info me-2" size={20} />
-                        <h5 className="fw-bold mb-0">부대 및 편의시설</h5>
+                        <h5 className="fw-bold mb-0">편의시설</h5>
                       </div>
                       <div className="card-body p-4">
                         <div className="d-flex flex-wrap gap-2">
