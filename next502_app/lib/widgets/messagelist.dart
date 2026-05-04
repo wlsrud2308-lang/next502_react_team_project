@@ -62,7 +62,7 @@ class MessageList extends StatelessWidget {
                   ],
 
                   // 말풍선 (이미지 vs 텍스트)
-                  msg.chatType == 'IMAGE' && msg.fileUrl != null
+                  msg.chatType.toString().toUpperCase().contains('IMAGE') && msg.fileUrl != null
                       ? ChatImageBubble(
                     imageUrl: msg.fileUrl!,
                     isMe: isMe,

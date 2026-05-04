@@ -1,5 +1,6 @@
 package bitc.next502.next502_backend.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,4 +13,9 @@ public enum ChatType {
     SYSTEM("시스템 메시지");
 
     private final String description;
+
+    @JsonValue
+    public String getName() {
+        return this.name();
+    }
 }

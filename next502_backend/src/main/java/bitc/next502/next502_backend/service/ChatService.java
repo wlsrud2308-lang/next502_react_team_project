@@ -142,6 +142,6 @@ public class ChatService {
         }
 
         // 3. 에뮬레이터에서 접근 가능한 URL 반환
-        return "http://10.0.2" + fileName;
+        return "http://10.0.2.2:8080/uploads/" + fileName;
     }
 }

@@ -14,7 +14,9 @@
     <application
         android:label="next502_app"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
+
 
         <meta-data
             android:name="com.naver.maps.map.CLIENT_ID"

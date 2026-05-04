@@ -78,6 +78,7 @@ public class ChatController {
                 .senderNick(msg.getSender().getUserNick())
                 .message(msg.getMessage())
                 .chatType(msg.getChatType())
+                .fileUrl(msg.getFileUrl())
                 .createDate(msg.getCreateDate())
                 .isReadYn(msg.getIsReadYn())
                 .build());
