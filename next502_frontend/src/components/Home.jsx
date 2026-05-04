@@ -6,6 +6,9 @@ import Footer from './layout/Footer';
 import FloatingChatBar from './chat/FloatingChatBar';
 import { Container, Row, Col, Badge, Card, Button, Spinner } from 'react-bootstrap';
 
+// 백엔드 서버 주소 (이미지 경로 파싱용)
+const API_BASE_URL = 'http://localhost:8080';
+
 function Home() {
   const navigate = useNavigate();
 
@@ -33,6 +36,16 @@ function Home() {
     };
     getTopWarehouses();
   }, []);
+
+  // 이미지 URL 변환 헬퍼 함수
+  const getImageUrl = (url) => {
+    if (!url) return 'https://via.placeholder.com/500x320?text=Warehouse+Image';
+    if (url.startsWith('http')) return url;
+
+    // 윈도우 경로(\)가 저장되었을 경우 슬래시(/)로 치환
+    const formattedUrl = url.replace(/\\/g, '/');
+    return `${API_BASE_URL}${formattedUrl.startsWith('/') ? '' : '/'}${formattedUrl}`;
+  };
 
   // 페이지네이션 계산
   const maxPage = warehouses.length > 0 ? Math.ceil(warehouses.length / pageSize) - 1 : 0;
@@ -163,14 +176,16 @@ function Home() {
                       style={{ cursor: 'pointer' }}
                     >
                       <div className="position-relative">
+                        {/* 이미지 URL 파싱 적용 */}
                         <img
-                          src={
-                            w.repImageUrl ||
-                            'https://via.placeholder.com/500x320?text=Warehouse+Image'
-                          }
+                          src={getImageUrl(w.repImageUrl)}
                           className="card-img-top"
                           alt={w.name}
                           style={{ height: '220px', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.target.src =
+                              'https://via.placeholder.com/500x320?text=Image+Load+Error';
+                          }}
                         />
                         <div className="position-absolute top-0 end-0 m-3 badge bg-dark opacity-75 fw-normal">
                           {w.storageType}
@@ -239,7 +254,8 @@ function Home() {
           <div className="col-lg-5">
             <h4 className="fw-bold mb-4">주요 서비스</h4>
             <div className="row g-3">
-              <div className="col-6">
+              {/* 창고등록 이동 이벤트 추가 */}
+              <div className="col-6" onClick={() => navigate('/warehouse/insert')}>
                 <div className="bg-primary text-white p-4 rounded-4 text-center cursor-pointer hover-opacity h-100">
                   <i className="bi bi-building fs-1 d-block mb-2"></i>
                   <span className="fw-bold">창고등록</span>

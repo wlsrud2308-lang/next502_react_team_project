@@ -37,3 +37,7 @@ ocr:
   tesseract:
     datapath: C:/Program Files/Tesseract-OCR/tessdata
 
+
+upload:
+  warehouse:
+    path: ${user.dir}/uploads/warehouse

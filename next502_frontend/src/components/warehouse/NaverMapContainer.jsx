@@ -1,12 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 
-const NaverMapContainer = ({ warehouses }) => {
+const NaverMapContainer = ({ warehouses, onMarkerClick }) => {
   const mapElement = useRef(null);
   const mapRef = useRef(null);
-  const markersRef = useRef([]); // 마커들을 관리할 Ref
+  const markersRef = useRef([]);
 
-  // 1. 지도 초기화 (최초 1회)
+  // 1. 지도 초기화
   useEffect(() => {
+
+    if (typeof window === 'undefined' || !window.naver || !window.naver.maps) {
+      console.warn('⏳ 네이버 지도 API 로딩 중...');
+      return;
+    }
+
     if (!mapRef.current && mapElement.current) {
       const mapOptions = {
         center: new window.naver.maps.LatLng(35.1795543, 129.0756416), // 부산 시청 기준
@@ -17,80 +23,73 @@ const NaverMapContainer = ({ warehouses }) => {
     }
   }, []);
 
-  // 2. 창고 데이터가 변경될 때마다 실행
+  // 2. 창고 데이터 마커 업데이트
   useEffect(() => {
-    // 지도가 없거나 데이터가 없으면 실행 안 함
-    if (!mapRef.current) return;
 
-    console.log('📦 지도 업데이트 시작. 데이터 개수:', warehouses?.length);
+    if (!mapRef.current || !window.naver || !window.naver.maps) return;
 
-    // [기존 마커 제거]
+
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
 
-    if (!warehouses || warehouses.length === 0) {
-      console.log('⚠️ 표시할 창고 데이터가 없습니다.');
-      return;
-    }
+    if (!warehouses || warehouses.length === 0) return;
 
-    // [새로운 마커 생성]
+
     warehouses.forEach((item) => {
-      // 주소가 없는 데이터 예외 처리
-      if (!item.address) {
-        console.warn(`⏩ '${item.name}' 창고의 주소가 비어있습니다.`);
-        return;
-      }
+      if (!item.address) return;
 
       window.naver.maps.Service.geocode({ query: item.address }, (status, response) => {
-        if (status !== window.naver.maps.Service.Status.OK) {
-          console.error('❌ 주소 변환 실패:', item.address);
-          return;
-        }
+        if (status !== window.naver.maps.Service.Status.OK) return;
 
         const result = response.v2.addresses[0];
         const coord = new window.naver.maps.LatLng(result.y, result.x);
 
-        // 마커 생성
         const marker = new window.naver.maps.Marker({
           position: coord,
           map: mapRef.current,
           title: item.name,
-          animation: window.naver.maps.Animation.DROP, // 마커가 툭 떨어지는 효과
+          animation: window.naver.maps.Animation.DROP,
         });
 
-        // 정보창 생성
         const infoWindow = new window.naver.maps.InfoWindow({
           content: `
             <div style="padding:10px; line-height:150%;">
-              <h5 style="margin:0; font-size:16px;">${item.name}</h5>
+              <h5 style="margin:0; font-size:16px; cursor:pointer; color:#0d6efd" id="info-${item.warehouseId}">
+                ${item.name}
+              </h5>
               <p style="margin:5px 0 0; font-size:13px; color:#666;">${item.address}</p>
             </div>`,
           borderWidth: 1,
           anchorSize: new window.naver.maps.Size(10, 10),
         });
 
-        // 마커 클릭 이벤트
         window.naver.maps.Event.addListener(marker, 'click', () => {
           if (infoWindow.getMap()) {
             infoWindow.close();
           } else {
             infoWindow.open(mapRef.current, marker);
+
+            // 정보창 클릭 시 상세 페이지 이동 이벤트 연결
+            setTimeout(() => {
+              const titleEl = document.getElementById(`info-${item.warehouseId}`);
+              if (titleEl && onMarkerClick) {
+                titleEl.onclick = () => onMarkerClick(item.warehouseId);
+              }
+            }, 100);
           }
         });
 
-        markersRef.current.push(marker); // 관리 배열에 추가
+        markersRef.current.push(marker);
       });
     });
+  }, [warehouses, onMarkerClick]);
 
-    // (선택사항) 검색 결과가 있다면 첫 번째 위치로 지도 중심 이동
-    /*
-    if (warehouses.length > 0 && warehouses[0].address) {
-       // 비동기 geocode 특성상 좌표를 따로 계산해서 mapRef.current.setCenter(coord) 호출 가능
-    }
-    */
-  }, [warehouses]); // ⭐️ warehouses가 바뀔 때마다 다시 그립니다.
-
-  return <div ref={mapElement} style={{ width: '100%', height: '100%', minHeight: '400px' }} />;
+  return (
+    <div
+      ref={mapElement}
+      style={{ width: '100%', height: '100%', minHeight: '400px', backgroundColor: '#f8f9fa' }}
+    />
+  );
 };
 
 export default NaverMapContainer;

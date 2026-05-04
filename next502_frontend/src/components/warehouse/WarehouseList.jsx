@@ -10,11 +10,7 @@ const WarehouseList = ({ warehouses = [], loading, onItemClick }) => {
 
       {warehouses.length > 0 ? (
         warehouses.map((item) => (
-          <WarehouseCard
-            key={item.warehouseId}
-            warehouse={item}
-            onItemClick={onItemClick} // 프롭스 전달
-          />
+          <WarehouseCard key={item.warehouseId} warehouse={item} onItemClick={onItemClick} />
         ))
       ) : (
         <div className="text-center py-5 text-muted">데이터가 존재하지 않습니다.</div>

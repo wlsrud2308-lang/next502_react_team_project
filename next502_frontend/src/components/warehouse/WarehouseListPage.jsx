@@ -6,6 +6,9 @@ import Header from '../layout/Header';
 import Footer from '../layout/Footer';
 import { MapPin, Maximize, Box, Search } from 'lucide-react';
 
+// 백엔드 서버 주소
+const API_BASE_URL = 'http://localhost:8080';
+
 const WarehouseListPage = () => {
   const navigate = useNavigate();
   const [warehouses, setWarehouses] = useState([]);
@@ -17,7 +20,6 @@ const WarehouseListPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('ACCESS_TOKEN');
-      // 기존에 만든 ApiService 활용
       const data = await fetchWarehouses('', '', name, token);
       setWarehouses(data);
     } catch (error) {
@@ -30,6 +32,15 @@ const WarehouseListPage = () => {
   useEffect(() => {
     loadWarehouses();
   }, []);
+
+  // 이미지 URL 변환 함수 추가
+  const getImageUrl = (url) => {
+    if (!url) return 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&q=80';
+    if (url.startsWith('http')) return url;
+
+    const formattedUrl = url.replace(/\\/g, '/');
+    return `${API_BASE_URL}${formattedUrl.startsWith('/') ? '' : '/'}${formattedUrl}`;
+  };
 
   return (
     <div className="bg-light" style={{ minHeight: '100vh' }}>
@@ -92,11 +103,12 @@ const WarehouseListPage = () => {
                   <div className="position-relative">
                     <Card.Img
                       variant="top"
-                      src={
-                        item.repImageUrl ||
-                        'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&q=80'
-                      }
+                      src={getImageUrl(item.repImageUrl)}
                       style={{ height: '200px', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.target.src =
+                          'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&q=80';
+                      }}
                     />
                     <Badge
                       bg="dark"

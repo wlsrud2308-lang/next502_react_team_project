@@ -134,4 +134,35 @@ export const apiResetPw = async (userId, newUserPw) => {
   }
 };
 
+// 창고 등록
+export const insertWarehouse = async (warehouseData, imageFiles) => {
+  try {
+    const formData = new FormData();
+
+
+    formData.append(
+      'data',
+      new Blob([JSON.stringify(warehouseData)], { type: 'application/json' })
+    );
+
+
+    imageFiles.forEach((file) => {
+      formData.append('images', file);
+    });
+
+    const res = await api.post('/warehouse/insert', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    });
+    return res.data;  // warehouseId
+  } catch (err) {
+    if (err.response?.data) {
+      throw typeof err.response.data === 'string'
+        ? err.response.data
+        : err.response.data.message || '창고 등록 실패';
+    }
+    throw '서버 통신 실패';
+  }
+};
+
 export default api;

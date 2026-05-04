@@ -7,6 +7,9 @@ import Header from '../layout/Header.jsx';
 import Footer from '../layout/Footer.jsx';
 import FloatingChatBar from '../chat/FloatingChatBar';
 
+
+const API_BASE_URL = 'http://localhost:8080';
+
 const WarehouseDetail = () => {
   const { id } = useParams();
   const [warehouse, setWarehouse] = useState(null);
@@ -29,6 +32,13 @@ const WarehouseDetail = () => {
     loadDetail();
   }, [id]);
 
+  // 이미지 URL 변환 헬퍼 함수
+  const getImageUrl = (url) => {
+    if (!url) return 'https://via.placeholder.com/800x500?text=No+Image';
+    if (url.startsWith('http')) return url; // 더미 데이터 (Unsplash 등 절대 경로)
+    return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`; // 로컬 업로드 파일 (8080 포트 매핑)
+  };
+
   if (loading)
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
@@ -44,7 +54,7 @@ const WarehouseDetail = () => {
     <div className="bg-light" style={{ minHeight: '100vh' }}>
       <Header />
 
-      {/* 헤더에 먹히지 않도록 충분한 상단 패딩 부여 (pt-5, mt-5) */}
+
       <Container className="pt-5 mt-5 pb-5">
         {/* 상단 타이틀 섹션 */}
         <div className="mb-4 bg-white p-4 rounded-4 shadow-sm border-0">
@@ -68,7 +78,7 @@ const WarehouseDetail = () => {
             <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-4">
               <Card.Img
                 variant="top"
-                src={warehouse.repImageUrl || 'https://via.placeholder.com/800x500?text=No+Image'}
+                src={getImageUrl(warehouse.repImageUrl)}
                 style={{ height: '450px', objectFit: 'cover' }}
               />
               <Card.Body className="p-4">
@@ -138,7 +148,7 @@ const WarehouseDetail = () => {
               {/* 편의시설 카드 */}
               <Card className="border-0 shadow-sm rounded-4 p-4 bg-dark text-white">
                 <h5 className="fw-bold mb-3">
-                  <Clock size={18} className="me-2 text-warning" /> 부대 및 편의시설
+                  <Clock size={18} className="me-2 text-warning" /> 편의시설
                 </h5>
                 <div className="d-flex flex-wrap gap-2">
                   {warehouse.amenities
