@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchWarehouses } from '../service/ApiService'; // 경로 확인 필요
 import Header from './layout/Header';
 import Footer from './layout/Footer';
+import FloatingChatBar from './chat/FloatingChatBar';
 import { Container, Row, Col, Badge, Card, Button, Spinner } from 'react-bootstrap';
 
 function Home() {
@@ -266,6 +267,8 @@ function Home() {
           </div>
         </div>
       </section>
+
+      <FloatingChatBar />
 
       <Footer />
 

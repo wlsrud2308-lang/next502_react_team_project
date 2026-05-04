@@ -5,11 +5,14 @@ import { fetchWarehouseDetail } from '../../service/ApiService';
 import { MapPin, Box, Maximize, Info, Phone, Clock, ShieldCheck } from 'lucide-react';
 import Header from '../layout/Header.jsx';
 import Footer from '../layout/Footer.jsx';
+import FloatingChatBar from '../chat/FloatingChatBar';
 
 const WarehouseDetail = () => {
   const { id } = useParams();
   const [warehouse, setWarehouse] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -126,6 +129,7 @@ const WarehouseDetail = () => {
                   variant="primary"
                   size="lg"
                   className="w-full fw-bold py-3 rounded-3 shadow-sm mb-3"
+                  onClick={() => setIsChatOpen(true)}
                 >
                   <Phone className="me-2" size={20} /> 채팅으로 문의하기
                 </Button>
@@ -150,6 +154,11 @@ const WarehouseDetail = () => {
           </Col>
         </Row>
       </Container>
+      <FloatingChatBar
+        isOpen={isChatOpen}
+        setIsOpen={setIsChatOpen}
+        warehouseName={warehouse.name}
+      />
       <Footer />
     </div>
   );
