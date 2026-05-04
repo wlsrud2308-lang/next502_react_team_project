@@ -1,132 +1,161 @@
 package bitc.next502.next502_backend.service;
 
-import bitc.next502.next502_backend.config.clova.ClovaOcrProperties;
 import bitc.next502.next502_backend.domain.dto.BusinessLicenseDTO;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
+import net.sourceforge.tess4j.Tesseract;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.UUID;
+import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OcrService {
 
-    private final ClovaOcrProperties clovaProps;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
+    @Value("${ocr.tesseract.datapath}")
+    private String tessDataPath;
 
     public BusinessLicenseDTO extractBusinessLicense(MultipartFile file) throws Exception {
-        // mock 모드: NCP 키 발급 전 개발용 더미 응답
-        if (clovaProps.isMock()
-                || clovaProps.getInvokeUrl() == null
-                || clovaProps.getInvokeUrl().isBlank()) {
-            log.warn("[OCR] mock 모드 동작 중 - 실제 CLOVA 호출 안 함");
-            return mockResponse();
+        BufferedImage original = ImageIO.read(new ByteArrayInputStream(file.getBytes()));
+        if (original == null) {
+            throw new IllegalArgumentException("이미지를 읽을 수 없습니다. 파일 형식을 확인하세요.");
         }
+        log.info("[OCR] 원본 이미지 크기: {}x{}", original.getWidth(), original.getHeight());
 
-        String originalName = (file.getOriginalFilename() != null)
-                ? file.getOriginalFilename() : "biz.jpg";
-        String ext = extractExtension(originalName);
+        BufferedImage processed = preprocessImage(original);
 
+        Path tempFile = Files.createTempFile("ocr_", ".png");
+        ImageIO.write(processed, "png", tempFile.toFile());
 
-        String messageJson = """
-        {
-          "version": "V2",
-          "requestId": "%s",
-          "timestamp": %d,
-          "images": [
-            { "format": "%s", "name": "biz_license" }
-          ]
+        try {
+            Tesseract tesseract = new Tesseract();
+            tesseract.setDatapath(tessDataPath);
+            tesseract.setLanguage("kor+eng");
+            tesseract.setVariable("user_defined_dpi", "300");
+            tesseract.setPageSegMode(6);
+
+            String rawText = tesseract.doOCR(tempFile.toFile());
+            log.info("[OCR] 추출된 raw text:\n{}", rawText);
+
+            return parseLicenseText(rawText);
+
+        } finally {
+            Files.deleteIfExists(tempFile);
         }
-        """.formatted(UUID.randomUUID().toString(), System.currentTimeMillis(), ext);
-
-        // multipart/form-data 구성
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("message", messageJson, MediaType.APPLICATION_JSON);
-        builder.part("file", new ByteArrayResource(file.getBytes()) {
-            @Override
-            public String getFilename() {
-                return originalName;
-            }
-        }).contentType(MediaType.parseMediaType(
-                file.getContentType() != null ? file.getContentType() : "image/jpeg"));
-
-        WebClient webClient = WebClient.builder()
-                .baseUrl(clovaProps.getInvokeUrl())
-                .defaultHeader("X-OCR-SECRET", clovaProps.getSecretKey())
-                .build();
-
-        String responseBody = webClient.post()
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(builder.build()))
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-
-        log.debug("[OCR] CLOVA raw response: {}", responseBody);
-
-        return parseResponse(responseBody);
     }
 
-    /**
-     * CLOVA "사업자등록증 특화 템플릿" 응답을 파싱.
-     */
-    private BusinessLicenseDTO parseResponse(String body) throws Exception {
-        JsonNode root = objectMapper.readTree(body);
-        JsonNode result = root.path("images").path(0).path("bizLicense").path("result");
+    private BufferedImage preprocessImage(BufferedImage src) {
+        int width = src.getWidth();
+        int height = src.getHeight();
+
+        double scale = (width < 1500) ? 2.0 : 1.0;
+        int newWidth = (int) (width * scale);
+        int newHeight = (int) (height * scale);
+
+        log.info("[OCR] 전처리: {}x{} → {}x{} (scale {}배)", width, height, newWidth, newHeight, scale);
+
+        BufferedImage result = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_BYTE_GRAY);
+        Graphics2D g = result.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.drawImage(src, 0, 0, newWidth, newHeight, null);
+        g.dispose();
+
+        return result;
+    }
+
+
+    private BusinessLicenseDTO parseLicenseText(String text) {
+        String registerNumber = null;
+        String companyName = null;
+        String representativeName = null;
+        String businessAddress = null;
+
+        // 사업자번호
+        registerNumber = extractRegisterNumber(text);
+
+
+        String[] lines = text.split("\\r?\\n");
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+
+            // 상호
+            if (companyName == null && line.matches(".*상\\s*호.*")) {
+                companyName = extractValueAfterColon(line);
+            }
+            // 대표자
+            else if (representativeName == null && line.matches(".*성\\s*명.*")) {
+                String value = extractValueAfterColon(line);
+                if (value != null) {
+
+                    int idx = value.indexOf("생년월일");
+                    if (idx > 0) value = value.substring(0, idx).trim();
+                    representativeName = value;
+                }
+            }
+            // 주소
+            else if (businessAddress == null && line.matches(".*사\\s*업\\s*장\\s*소\\s*재.*")) {
+                String value = extractValueAfterColon(line);
+
+                if (value != null && i + 1 < lines.length) {
+                    String nextLine = lines[i + 1].trim();
+
+                    if (!nextLine.isEmpty()
+                            && !nextLine.matches(".*(업\\s*의|종\\s*류|발\\s*급|공\\s*동|전\\s*화|Fax|E-mail|사업자|전자).*")
+                            && nextLine.length() < 50) {
+                        value = value + " " + nextLine;
+                    }
+                }
+                businessAddress = value;
+            }
+        }
+
+        log.info("[OCR] 파싱 결과 - 상호:{}, 번호:{}, 대표자:{}, 주소:{}",
+                companyName, registerNumber, representativeName, businessAddress);
 
         return BusinessLicenseDTO.builder()
-                .companyName(extractText(result, "companyName"))
-                .registerNumber(extractText(result, "registerNumber"))
-                .representativeName(extractText(result, "repName"))
-                .businessAddress(extractText(result, "bizAddress"))
-                .message("OCR 분석 완료")
+                .companyName(companyName)
+                .registerNumber(registerNumber)
+                .representativeName(representativeName)
+                .businessAddress(businessAddress)
+                .message("OCR 분석 완료 (Tesseract). 인식 결과를 확인 후 수정해주세요.")
                 .build();
     }
 
-
-    private String extractText(JsonNode resultNode, String fieldName) {
-        JsonNode arr = resultNode.path(fieldName);
-        if (arr.isArray() && arr.size() > 0) {
-            JsonNode first = arr.get(0);
-            if (first.hasNonNull("text")) {
-                return first.get("text").asText();
-            }
-            JsonNode formatted = first.path("formatted");
-            if (formatted.hasNonNull("value")) {
-                return formatted.get("value").asText();
-            }
+    private String extractRegisterNumber(String text) {
+        Pattern pattern = Pattern.compile("(\\d{3})\\s*-\\s*(\\d{2})\\s*-\\s*(\\d{5})");
+        Matcher matcher = pattern.matcher(text);
+        if (matcher.find()) {
+            return matcher.group(1) + "-" + matcher.group(2) + "-" + matcher.group(3);
         }
         return null;
     }
 
-    /** 파일 확장자 추출 */
-    private String extractExtension(String filename) {
-        int dot = filename.lastIndexOf('.');
-        if (dot < 0 || dot == filename.length() - 1) {
-            return "jpg";
-        }
-        return filename.substring(dot + 1).toLowerCase();
-    }
 
-    /** mock 응답 - 실제 키 없을 때 프론트엔드 개발 진행용 */
-    private BusinessLicenseDTO mockResponse() {
-        return BusinessLicenseDTO.builder()
-                .companyName("(주)창고이음테스트")
-                .registerNumber("123-45-67890")
-                .representativeName("홍길동")
-                .businessAddress("부산광역시 사하구 감천항로 123")
-                .message("[MOCK] 실제 CLOVA 호출 없음 - application.yaml에서 clova.ocr.mock=false로 변경 필요")
-                .build();
+    private String extractValueAfterColon(String line) {
+        // 콜론 종류: : ：
+        Pattern pattern = Pattern.compile("[:：]\\s*(.+)");
+        Matcher matcher = pattern.matcher(line);
+        if (matcher.find()) {
+            String value = matcher.group(1).trim();
+
+            value = value.replaceAll("[:：]\\s*$", "").trim();
+            if (value.length() >= 1 && value.length() <= 200) {
+                return value;
+            }
+        }
+        return null;
     }
 }

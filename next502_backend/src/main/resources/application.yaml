@@ -33,9 +33,7 @@ jwt:
   issuer: next502@bitc.ac.kr
   secret_key: next502-jwt-test-token-secret-key
 
-clova:
-  ocr:
-    invoke-url: ${CLOVA_OCR_INVOKE_URL:}
-    secret-key: ${CLOVA_OCR_SECRET_KEY:}
-    mock: ${CLOVA_OCR_MOCK:true}
+ocr:
+  tesseract:
+    datapath: C:/Program Files/Tesseract-OCR/tessdata
 
