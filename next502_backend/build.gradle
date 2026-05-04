@@ -37,6 +37,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'net.sourceforge.tess4j:tess4j:5.13.0'
 
 
 

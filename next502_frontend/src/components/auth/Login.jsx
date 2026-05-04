@@ -15,7 +15,12 @@ function Login() {
     setIsLoading(true);
     try {
       const data = await apiLogin(userId, userPw);
-      loginSuccess(data.token, data.role, data.userId);
+
+      // ⭐ 백엔드 응답 키: id, accessToken, refreshToken, role
+      localStorage.setItem('ACCESS_TOKEN', data.accessToken);
+      if (data.refreshToken) localStorage.setItem('REFRESH_TOKEN', data.refreshToken);
+      loginSuccess(data.accessToken, data.role, data.id);
+
       navigate('/');
     } catch (err) {
       alert(err);
@@ -31,7 +36,6 @@ function Login() {
         style={{ maxWidth: '900px', minHeight: '550px' }}
       >
         <div className="row g-0 h-100">
-          {/* 왼쪽: 브랜드 섹션 (웹 특유의 감성) */}
           <div
             className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center text-white p-5"
             style={{ background: 'linear-gradient(135deg, #4e73df 0%, #224abe 100%)' }}
@@ -44,7 +48,6 @@ function Login() {
             <div className="mt-4 fs-1">📦</div>
           </div>
 
-          {/* 오른쪽: 로그인 폼 */}
           <div className="col-lg-6 p-5 d-flex flex-column justify-content-center">
             <div className="mb-4">
               <h3 className="fw-bold text-dark">로그인</h3>
@@ -98,7 +101,6 @@ function Login() {
 
             <div className="text-center mb-4 text-muted small">또는</div>
 
-            {/* 카카오 로그인 버튼[cite: 1] */}
             <button
               className="btn btn-warning w-100 py-2 fw-bold rounded-3 border-0 d-flex align-items-center justify-content-center mb-4"
               style={{ backgroundColor: '#FEE500', color: '#3c1e1e' }}
