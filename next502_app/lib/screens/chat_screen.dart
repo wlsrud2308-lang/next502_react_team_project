@@ -75,7 +75,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final String myId = auth.userId.toString();
 
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('http://10.0.2'));
+      var request = http.MultipartRequest('POST', Uri.parse('http://10.0.2.2:8080/chat/upload'));
       request.headers['Authorization'] = 'Bearer ${auth.token}';
       request.files.add(await http.MultipartFile.fromPath('file', pickedFile.path));
       var response = await http.Response.fromStream(await request.send());
@@ -201,8 +201,18 @@ class _ChatScreenState extends State<ChatScreen> {
                   return const Center(child: Text('메시지가 없습니다.'));
                 }
 
-                // ⚠️ Firestore 전용 생성자(fromFirestore)를 사용하여 데이터를 깔끔하게 파싱합니다.
-                final List<ChatMessageModel> messages = snapshot.data!.docs.map((doc) {
+                final docs = snapshot.data!.docs;
+
+                // ✅ [추가] 실시간 읽음 처리 로직
+                for (var doc in docs) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  // 내가 보낸 게 아니고(상대방 메시지), 아직 안 읽음(false) 상태라면
+                  if (data['senderId'] != myId.toString() && data['isRead'] == false) {
+                    doc.reference.update({'isRead': true}); // Firestore 서버 값 변경
+                  }
+                }
+
+                final List<ChatMessageModel> messages = docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   return ChatMessageModel.fromFirestore(doc.id, data);
                 }).toList();

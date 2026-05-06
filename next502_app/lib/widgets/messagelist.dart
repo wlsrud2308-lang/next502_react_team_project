@@ -12,26 +12,23 @@ class MessageList extends StatelessWidget {
   // 시간을 안전하게 잘라주는 헬퍼 함수
   String _formatTime(String createdAt) {
     if (createdAt.isEmpty) return "";
-
     try {
-      // T가 포함된 경우 (2026-04-30T15:21:27)
       if (createdAt.contains('T')) {
         return createdAt.split('T')[1].substring(0, 5);
       }
-      // 공백으로 구분된 경우 (2026-04-30 15:21:27)
       if (createdAt.length >= 16) {
         return createdAt.substring(11, 16);
       }
     } catch (e) {
       debugPrint("시간 파싱 에러: $e");
     }
-    return createdAt; // 파싱 실패 시 원본 반환
+    return createdAt;
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      reverse: true,
+      reverse: true, // 최신 메시지가 아래에 오도록 역순 배치
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
       itemCount: messages.length,
       itemBuilder: (context, index) {
@@ -39,64 +36,100 @@ class MessageList extends StatelessWidget {
         final bool isMe = msg.senderId.toString() == myId.toString();
         final String displayTime = _formatTime(msg.createdAt);
 
+        print("📩 메시지 타입: '${msg.chatType}', URL 존재여부: ${msg.fileUrl != null}");
+
+        // 1. 이미지 타입인 경우
+        if (msg.chatType.toUpperCase() == 'IMAGE' && msg.fileUrl != null) {
+          return ChatImageBubble(
+            imageUrl: msg.fileUrl!,
+            isMe: isMe,
+            time: displayTime,
+          );
+        }
+
+        // 2. 보이스톡 타입인 경우 (필요 시 추가)
+        if (msg.chatType.toUpperCase() == 'VOICE') {
+          return _buildVoiceMessage(isMe, displayTime);
+        }
+
+        // 3. 일반 텍스트 타입인 경우
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 5),
-          child: Column(
-            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          child: Row(
+            mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
-                mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // [내가 보낸 메시지] 왼쪽에 '1' 및 시간 표시
-                  if (isMe) ...[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (msg.isReadYn == 'N')
-                          const Text("1", style: TextStyle(color: Colors.yellow, fontSize: 12, fontWeight: FontWeight.bold)),
-                        Text(displayTime, style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                      ],
-                    ),
-                    const SizedBox(width: 5),
-                  ],
+              // 내가 보낸 메시지라면 왼쪽에 상태 표시
+              if (isMe) _buildStatus(msg.isReadYn, displayTime, isMe),
+              if (isMe) const SizedBox(width: 5),
 
-                  // 말풍선 (이미지 vs 텍스트)
-                  msg.chatType.toString().toUpperCase().contains('IMAGE') && msg.fileUrl != null
-                      ? ChatImageBubble(
-                    imageUrl: msg.fileUrl!,
-                    isMe: isMe,
-                    time: displayTime,
-                  )
-                      : BubbleSpecialThree(
-                    text: msg.message,
-                    color: isMe ? const Color(0xFF673AB7) : const Color(0xFFE8E8EE),
-                    tail: true,
-                    isSender: isMe,
-                    textStyle: TextStyle(color: isMe ? Colors.white : Colors.black87, fontSize: 16),
-                  ),
-
-                  // [상대방이 보낸 메시지] 오른쪽에 '1' 및 시간 표시
-                  if (!isMe) ...[
-                    const SizedBox(width: 5),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (msg.isReadYn == 'N')
-                          const Text("1", style: TextStyle(color: Colors.yellow, fontSize: 12, fontWeight: FontWeight.bold)),
-                        Text(displayTime, style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                      ],
-                    ),
-                  ],
-                ],
+              BubbleSpecialThree(
+                text: msg.message,
+                color: isMe ? const Color(0xFF673AB7) : const Color(0xFFE8E8EE),
+                tail: true,
+                isSender: isMe,
+                textStyle: TextStyle(
+                  color: isMe ? Colors.white : Colors.black87,
+                  fontSize: 16,
+                ),
               ),
+
+              // 상대방이 보낸 메시지라면 오른쪽에 상태 표시
+              if (!isMe) const SizedBox(width: 5),
+              if (!isMe) _buildStatus(msg.isReadYn, displayTime, isMe),
             ],
           ),
         );
       },
     );
   }
-}
 
+  // 읽음 숫자 '1'과 시간 표시 위젯
+  Widget _buildStatus(String isReadYn, String time, bool isMe) {
+    return Column(
+      crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        if (isReadYn == 'N')
+          const Text(
+            "1",
+            style: TextStyle(
+              color: Colors.yellow,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        Text(
+          time,
+          style: const TextStyle(color: Colors.grey, fontSize: 10),
+        ),
+      ],
+    );
+  }
+
+  // 보이스톡용 간이 UI (필요 시)
+  Widget _buildVoiceMessage(bool isMe, String time) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.green.shade100,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.phone_callback, size: 16),
+            const SizedBox(width: 5),
+            const Text("보이스톡 종료"),
+            const SizedBox(width: 5),
+            Text(time, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 
