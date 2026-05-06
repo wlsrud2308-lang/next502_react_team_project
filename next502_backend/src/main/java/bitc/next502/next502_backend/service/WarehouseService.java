@@ -49,6 +49,14 @@ public class WarehouseService {
         return convertToDTO(entity);
     }
 
+    //  내가 등록한 창고 목록 가져오기
+    public List<WarehouseDTO> getMyWarehouseList(MemberEntity member) {
+        List<WarehouseEntity> myWarehouses = warehouseRepository.findByMember(member);
+
+        return myWarehouses.stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
 
     @Transactional
     public Long insertWarehouse(WarehouseDTO dto, List<MultipartFile> images, MemberEntity member) throws Exception {

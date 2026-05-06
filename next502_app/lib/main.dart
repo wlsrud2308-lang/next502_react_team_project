@@ -103,7 +103,7 @@ class MyApp extends StatelessWidget {
         '/mypage': (context) => const MyPageScreen(),
         '/whInput': (context) => const WarehouseInputScreen(),
         '/ocr_verify': (context) => const OcrScreen(),
-        '/whInfo': (context) => const WarehouseInfoScreen(),
+        '/whInfo': (context) => WarehouseInfoScreen(),
         '/whMap': (context) => const WarehouseMapScreen(),
         '/faq' : (context) => const FaqScreen(),
         '/editProfile': (context) => const EditProfileScreen(),

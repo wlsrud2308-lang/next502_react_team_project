@@ -8,7 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,5 +35,30 @@ public class FavoriteService {
             favoriteRepository.save(newFavorite);
             return "찜 등록";
         }
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getFavoriteList(MemberEntity member) {
+        List<FavoriteEntity> favorites = favoriteRepository.findByMember(member);
+
+        return favorites.stream()
+                .map(favorite -> {
+                    WarehouseEntity warehouse = favorite.getWarehouse();
+                    Map<String, Object> map = new HashMap<>();
+
+                    // 기본 정보
+                    map.put("warehouseId", warehouse.getWarehouseId());
+                    map.put("name", warehouse.getName());
+                    map.put("address", warehouse.getAddress());
+
+                    map.put("repImageUrl", warehouse.getRepImageUrl());
+                    map.put("sizeRank", warehouse.getSizeRank());
+                    map.put("totalArea", warehouse.getTotalArea());
+                    map.put("description", warehouse.getDescription());
+
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -3,55 +3,60 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/warehouse_model.dart';
-import 'chat_screen.dart'; // ChatScreen import 확인
+import 'chat_screen.dart';
+import 'package:next502_app/utils/image_url_helper.dart';
+import 'package:next502_app/services/api_client.dart';
 
-class WarehouseInfoScreen extends StatelessWidget {
+
+class WarehouseInfoScreen extends StatefulWidget {
   final WarehouseModel? warehouseData;
-  final _storage = const FlutterSecureStorage();
 
   const WarehouseInfoScreen({super.key, this.warehouseData});
 
-  // 1. 찜하기(Favorite) 로직
-  Future<void> _toggleFavorite(BuildContext context, int warehouseId) async {
-    try {
-      String? token = await _storage.read(key: 'accessToken');
-      // 백엔드 주소에 맞게 수정 필요
-      final String url = 'http://10.0.2';
+  @override
+  State<WarehouseInfoScreen> createState() => _WarehouseInfoScreenState();
+}
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
+  final _storage = const FlutterSecureStorage();
+  final ApiClient _apiClient = ApiClient();
+
+  // ★ 하트 상태
+  bool isFavorite = false;
+
+  Future<void> _toggleFavorite(int warehouseId) async {
+    try {
+      final response = await _apiClient.toggleFavorite(warehouseId);
 
       if (response.statusCode == 200) {
-        if (context.mounted) {
+
+        setState(() {
+          isFavorite = !isFavorite;
+        });
+
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(utf8.decode(response.bodyBytes))),
+            SnackBar(content: Text(response.data.toString())),
           );
         }
       }
     } catch (e) {
       debugPrint("찜하기 에러: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("찜하기 처리에 실패했습니다.")),
+        );
+      }
     }
   }
+  Future<void> _startChat(int warehouseId, String warehouseName) async {
 
-  // 2. 채팅방 생성 및 이동 로직 (수정됨)
-  Future<void> _startChat(BuildContext context, int warehouseId, String warehouseName) async {
-    print("1. 채팅 시작 버튼 클릭됨! warehouseId: $warehouseId"); // 확인용 로그
+    print("1. 채팅 시작 버튼 클릭됨! warehouseId: $warehouseId");
     try {
       String? token = await _storage.read(key: 'accessToken');
-      if (token == null) {
-        print("에러: 토큰이 없습니다. 로그인이 필요합니다.");
-        return;
-      }
-      print("전송 토큰: $token");
+      if (token == null) return;
 
-      final String url = 'http://10.0.2.2:8080/chat/room/${warehouseId}';
-      print("2. API 호출 주소: $url");
-
+      final String url = 'http://10.0.2.2:8080/chat/room/$warehouseId';
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -60,17 +65,11 @@ class WarehouseInfoScreen extends StatelessWidget {
         },
       );
 
-      print("3. 서버 응답 코드: ${response.statusCode}");
-      print("4. 서버 응답 바디: ${utf8.decode(response.bodyBytes)}");
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> room = json.decode(utf8.decode(response.bodyBytes));
-        final int roomId = room['chatRoomId']; // 서버 엔티티의 PK 필드명 확인
+        final int roomId = room['chatRoomId'];
 
-
-        print("5. 화면 이동 시작! roomId: $roomId");
-
-        if (context.mounted) {
+        if (mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -81,18 +80,16 @@ class WarehouseInfoScreen extends StatelessWidget {
             ),
           );
         }
-      } else {
-        print("6. 서버 에러 발생: ${response.statusCode}");
       }
     } catch (e) {
-      print("7. 통신 중 예외 발생: $e");
+      print("통신 중 예외 발생: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // arguments로 넘어온 데이터를 우선 사용
-    final warehouse = warehouseData ?? ModalRoute.of(context)!.settings.arguments as WarehouseModel;
+
+    final warehouse = widget.warehouseData ?? ModalRoute.of(context)!.settings.arguments as WarehouseModel;
     final int warehouseId = warehouse.warehouseId;
 
     return Scaffold(
@@ -101,8 +98,12 @@ class WarehouseInfoScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.favorite_border),
-            onPressed: () => _toggleFavorite(context, warehouseId),
+
+            icon: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? Colors.redAccent : null,
+            ),
+            onPressed: () => _toggleFavorite(warehouseId),
           ),
           IconButton(icon: const Icon(Icons.share), onPressed: () {}),
         ],
@@ -111,14 +112,11 @@ class WarehouseInfoScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 이미지 영역
             Container(
               height: 250,
               width: double.infinity,
               color: Colors.grey.shade200,
-              child: warehouse.images.isNotEmpty
-                  ? Image.network(warehouse.images.first.imageUrl, fit: BoxFit.cover)
-                  : const Icon(Icons.image, size: 100, color: Colors.grey),
+              child: _buildDetailImage(warehouse),
             ),
             Padding(
               padding: const EdgeInsets.all(20.0),
@@ -162,7 +160,6 @@ class WarehouseInfoScreen extends StatelessWidget {
           ],
         ),
       ),
-      // 하단 고정 버튼 바
       bottomSheet: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: const BoxDecoration(
@@ -173,7 +170,7 @@ class WarehouseInfoScreen extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {}, // url_launcher로 전화 연결 가능
+                onPressed: () {},
                 icon: const Icon(Icons.phone),
                 label: const Text("전화 문의"),
                 style: OutlinedButton.styleFrom(
@@ -186,8 +183,7 @@ class WarehouseInfoScreen extends StatelessWidget {
             const SizedBox(width: 15),
             Expanded(
               child: ElevatedButton.icon(
-                // [변경] _startChat 함수 호출 시 이름도 함께 전달
-                onPressed: () => _startChat(context, warehouseId, warehouse.name),
+                onPressed: () => _startChat(warehouseId, warehouse.name),
                 icon: const Icon(Icons.chat_bubble),
                 label: const Text("채팅 상담"),
                 style: ElevatedButton.styleFrom(
@@ -203,6 +199,28 @@ class WarehouseInfoScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDetailImage(WarehouseModel warehouse) {
+    final url = normalizeImageUrl(warehouse.repImageUrl) ??
+        (warehouse.images.isNotEmpty
+            ? normalizeImageUrl(warehouse.images.first.imageUrl)
+            : null);
+
+    if (url == null) {
+      return const Icon(Icons.image, size: 100, color: Colors.grey);
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (ctx, err, stack) =>
+      const Icon(Icons.broken_image, size: 100, color: Colors.grey),
+      loadingBuilder: (ctx, child, progress) {
+        if (progress == null) return child;
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+  }
+
   Widget _buildSpecItem(IconData icon, String label, String value) {
     return Column(
       children: [
@@ -215,7 +233,3 @@ class WarehouseInfoScreen extends StatelessWidget {
     );
   }
 }
-
-
-
-

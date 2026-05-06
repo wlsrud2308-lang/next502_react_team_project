@@ -3,56 +3,39 @@ import 'package:next502_app/services/api_client.dart';
 import 'package:next502_app/models/warehouse_model.dart';
 import 'package:next502_app/utils/image_url_helper.dart';
 
-class FavoriteListScreen extends StatefulWidget {
-  const FavoriteListScreen({super.key});
+class MyWarehouseListScreen extends StatefulWidget {
+  const MyWarehouseListScreen({super.key});
 
   @override
-  State<FavoriteListScreen> createState() => _FavoriteListScreenState();
+  State<MyWarehouseListScreen> createState() => _MyWarehouseListScreenState();
 }
 
-class _FavoriteListScreenState extends State<FavoriteListScreen> {
+class _MyWarehouseListScreenState extends State<MyWarehouseListScreen> {
   final ApiClient _apiClient = ApiClient();
-  List<dynamic> _favorites = [];
+  List<dynamic> _myWarehouses = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchFavorites();
+    _fetchMyWarehouses();
   }
 
-  Future<void> _fetchFavorites() async {
+  //  내가 등록한 창고 목록 가져오기
+  Future<void> _fetchMyWarehouses() async {
     try {
-      final response = await _apiClient.getFavoriteList();
+      final response = await _apiClient.getMyWarehouseList();
       if (response.statusCode == 200) {
         setState(() {
-          _favorites = response.data;
+          _myWarehouses = response.data;
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("찜 목록 불러오기 에러: $e");
+      debugPrint("내 창고 목록 불러오기 에러: $e");
       setState(() {
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _removeFavorite(int index, int warehouseId) async {
-    try {
-      final response = await _apiClient.toggleFavorite(warehouseId);
-      if (response.statusCode == 200) {
-        setState(() {
-          _favorites.removeAt(index);
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.data.toString())),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint("찜 해제 에러: $e");
     }
   }
 
@@ -61,20 +44,20 @@ class _FavoriteListScreenState extends State<FavoriteListScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("관심 창고 목록", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text("내가 등록한 창고", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _favorites.isEmpty
-          ? const Center(child: Text("아직 찜한 창고가 없습니다.", style: TextStyle(color: Colors.grey)))
+          : _myWarehouses.isEmpty
+          ? const Center(child: Text("아직 등록한 창고가 없습니다.", style: TextStyle(color: Colors.grey)))
           : ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _favorites.length,
+        itemCount: _myWarehouses.length,
         itemBuilder: (context, index) {
-          final item = _favorites[index];
+          final item = _myWarehouses[index];
           return Card(
             elevation: 0,
             color: Colors.grey.shade50,
@@ -85,30 +68,25 @@ class _FavoriteListScreenState extends State<FavoriteListScreen> {
             ),
             child: ListTile(
               onTap: () {
-                try {
-                  final model = WarehouseModel.fromJson({
-                    'warehouseId': item['warehouseId'],
-                    'name': item['name'],
-                    'address': item['address'],
-                    'sizeRank': item['sizeRank'] ?? '등급 정보 없음',
-                    'totalArea': item['totalArea'] ?? 0.0,
-                    'description': item['description'] ?? '상세 설명이 없습니다.',
-                    'repImageUrl': item['repImageUrl'] ?? '',
-                    'images': [],
-                  });
+                // 누르면 상세 화면으로 이동
+                final model = WarehouseModel.fromJson({
+                  'warehouseId': item['warehouseId'],
+                  'name': item['name'],
+                  'address': item['address'],
+                  'sizeRank': item['sizeRank'] ?? '등급 없음',
+                  'totalArea': item['totalArea'] ?? 0.0,
+                  'description': item['description'] ?? '상세 설명이 없습니다.',
+                  'repImageUrl': item['repImageUrl'] ?? '',
+                  'images': [],
+                });
 
-                  Navigator.pushNamed(context, '/whInfo', arguments: model);
-                } catch (e) {
-                  debugPrint("상세 화면 이동 에러: $e");
-                }
+                Navigator.pushNamed(context, '/whInfo', arguments: model);
               },
               contentPadding: const EdgeInsets.all(16),
-
-
               leading: Container(
                 width: 60, height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.shade50,
+                  color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                   image: item['repImageUrl'] != null && item['repImageUrl'].toString().isNotEmpty
                       ? DecorationImage(
@@ -118,21 +96,15 @@ class _FavoriteListScreenState extends State<FavoriteListScreen> {
                       : null,
                 ),
                 child: item['repImageUrl'] == null || item['repImageUrl'].toString().isEmpty
-                    ? const Icon(Icons.warehouse, color: Colors.deepPurple)
+                    ? const Icon(Icons.domain, color: Colors.blue)
                     : null,
               ),
-
               title: Text(item['name'] ?? '이름 없음', style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(item['address'] ?? '주소 정보 없음', style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ),
-              trailing: IconButton(
-                icon: const Icon(Icons.favorite, color: Colors.redAccent),
-                onPressed: () {
-                  _removeFavorite(index, item['warehouseId']);
-                },
-              ),
+              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
             ),
           );
         },

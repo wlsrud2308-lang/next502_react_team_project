@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/warehouse_model.dart';
-// import '../screens/chat_screen.dart'; // pushNamed 사용 시 import 생략 가능
+import 'package:next502_app/utils/image_url_helper.dart';
+
 
 class WarehouseSlider extends StatelessWidget {
   final List<WarehouseModel> items;
@@ -31,7 +32,6 @@ class WarehouseSlider extends StatelessWidget {
         final int roomId = room['chatRoomId'];
 
         if (context.mounted) {
-          // main.dart의 routes 설정('/chat')을 사용하여 이동
           Navigator.pushNamed(
             context,
             '/chat',
@@ -99,18 +99,12 @@ class WarehouseSlider extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- 이미지 영역 수정됨 ---
               Container(
                 height: 90,
                 width: double.infinity,
                 color: const Color(0xFFF0F0F0),
-                child: warehouse.repImageUrl != null && warehouse.repImageUrl!.isNotEmpty
-                    ? Image.network(warehouse.repImageUrl!, fit: BoxFit.cover)
-                    : (warehouse.images.isNotEmpty
-                    ? Image.network(warehouse.images[0].imageUrl, fit: BoxFit.cover)
-                    : const Icon(Icons.warehouse, color: Colors.grey, size: 35)),
+                child: _buildCardImage(warehouse),
               ),
-              // -----------------------
               Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Column(
@@ -149,6 +143,35 @@ class WarehouseSlider extends StatelessWidget {
     );
   }
 
+  /// 카드 이미지 표시
+  Widget _buildCardImage(WarehouseModel warehouse) {
+    final url = normalizeImageUrl(warehouse.repImageUrl) ??
+        (warehouse.images.isNotEmpty
+            ? normalizeImageUrl(warehouse.images[0].imageUrl)
+            : null);
+
+    if (url == null) {
+      return const Icon(Icons.warehouse, color: Colors.grey, size: 35);
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (ctx, err, stack) =>
+      const Icon(Icons.broken_image, color: Colors.grey, size: 35),
+      loadingBuilder: (ctx, child, progress) {
+        if (progress == null) return child;
+        return const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildContactButton(IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -173,7 +196,3 @@ class WarehouseSlider extends StatelessWidget {
     );
   }
 }
-
-
-
-
