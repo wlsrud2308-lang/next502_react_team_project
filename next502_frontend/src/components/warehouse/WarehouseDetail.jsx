@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { Container, Row, Col, Badge, Card, Button, ProgressBar, Spinner } from 'react-bootstrap';
 import { fetchWarehouseDetail } from '../../service/ApiService';
@@ -16,6 +17,7 @@ const WarehouseDetail = () => {
   const [loading, setLoading] = useState(true);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -31,6 +33,30 @@ const WarehouseDetail = () => {
     };
     loadDetail();
   }, [id]);
+
+  const handleChatConnect = async () => {
+    try {
+      const token = localStorage.getItem('ACCESS_TOKEN');
+
+      // 1. 백엔드(Spring Boot)에 채팅방 생성/조회 요청
+      const response = await axios.post(
+        `${API_BASE_URL}/chat/room/${id}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      // 2. 받은 방 정보(chatRoomId 등) 저장
+      setSelectedChatRoom(response.data);
+
+      // 3. 플로팅 채팅바 열기
+      setIsChatOpen(true);
+    } catch (error) {
+      console.error('채팅방 연결 실패:', error);
+      alert('로그인이 필요하거나 채팅방을 열 수 없습니다.');
+    }
+  };
 
   // 이미지 URL 변환 헬퍼 함수
   const getImageUrl = (url) => {
@@ -53,7 +79,6 @@ const WarehouseDetail = () => {
   return (
     <div className="bg-light" style={{ minHeight: '100vh' }}>
       <Header />
-
 
       <Container className="pt-5 mt-5 pb-5">
         {/* 상단 타이틀 섹션 */}
@@ -138,8 +163,8 @@ const WarehouseDetail = () => {
                 <Button
                   variant="primary"
                   size="lg"
-                  className="w-full fw-bold py-3 rounded-3 shadow-sm mb-3"
-                  onClick={() => setIsChatOpen(true)}
+                  className="w-100 fw-bold py-3 rounded-3 shadow-sm mb-3"
+                  onClick={handleChatConnect}
                 >
                   <Phone className="me-2" size={20} /> 채팅으로 문의하기
                 </Button>
@@ -168,6 +193,7 @@ const WarehouseDetail = () => {
         isOpen={isChatOpen}
         setIsOpen={setIsChatOpen}
         warehouseName={warehouse.name}
+        initialRoom={selectedChatRoom}
       />
       <Footer />
     </div>

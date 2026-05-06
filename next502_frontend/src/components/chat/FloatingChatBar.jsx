@@ -1,97 +1,192 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Form, Button } from 'react-bootstrap';
-import { Send, MessageSquare, Heart, Smile, ChevronLeft } from 'lucide-react';
-// import { db } from '../../firebase'; // 👈 파이어베이스 이닛 파일 생성 후 주석 해제
-// import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { Send, MessageSquare, ChevronLeft, Paperclip } from 'lucide-react';
+import axios from 'axios';
+import { db } from '../../api/firebaseConfig';
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
+import { useAuth } from '../../context/AuthContext';
 
-export default function FloatingChatBar() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState(null); // 현재 클릭한 방 (ChatRoomDTO 규격)
+// ✅ 백엔드 주소 고정 (404 방지)
+const API_BASE_URL = 'http://localhost:8080';
+
+export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, initialRoom }) {
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const [message, setMessage] = useState('');
+  const [chatRooms, setChatRooms] = useState([]);
+  const [messages, setMessages] = useState([]);
 
-  // ⚠️ 백엔드 ChatRoomDTO 규격에 맞춘 가상 리스트 (추후 Firestore 실시간 데이터로 대체)
-  const [chatRooms, setChatRooms] = useState([
-    {
-      chatRoomId: 101,
-      warehouseName: '부산항 신항 배후단지 창고',
-      userid: 'buyer_01',
-      updateDate: '2026-05-04 14:30',
-    },
-    {
-      chatRoomId: 102,
-      warehouseName: '감천항 냉동 물류센터',
-      userid: 'provider_02',
-      updateDate: '2026-05-04 12:15',
-    },
-  ]);
+  // ✅ 유저 정보 유실 방지 로직
+  const { userData: authUserData } = useAuth();
+  const [userData, setUserData] = useState(null);
 
-  // 💡 [추후 연동할 파이어베이스 실시간 구독 코드 미리 심어두기]
-  /*
+  const scrollRef = useRef();
+  const fileInputRef = useRef();
+
+  // 1. [유저 정보 복구] Context가 비었을 때 로컬스토리지에서 가져옴
   useEffect(() => {
-    const currentUserId = "현재_로그인한_유저_ID";
+    if (authUserData) {
+      setUserData(authUserData);
+    } else {
+      const savedUser = localStorage.getItem('USER_INFO'); // 본인의 프로젝트 키 이름 확인 필요
+      if (savedUser) setUserData(JSON.parse(savedUser));
+    }
+  }, [authUserData]);
+
+  // 2. [상세페이지 연동] 넘겨받은 방이 있으면 즉시 대화창 열기
+  useEffect(() => {
+    if (initialRoom) {
+      setSelectedRoom(initialRoom);
+    }
+  }, [initialRoom]);
+
+  // 3. [MySQL] 채팅방 목록 가져오기
+  useEffect(() => {
+    if (isOpen) {
+      const token = localStorage.getItem('ACCESS_TOKEN');
+      axios
+        .get(`${API_BASE_URL}/chat/rooms`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => setChatRooms(Array.isArray(res.data) ? res.data : []))
+        .catch((err) => console.error('목록 로드 실패:', err));
+    }
+  }, [isOpen]);
+
+  // 4. [Firestore] 실시간 메시지 구독 및 읽음 처리
+  useEffect(() => {
+    if (!selectedRoom) return;
+
+    const token = localStorage.getItem('ACCESS_TOKEN');
+    // 읽음 처리 알림 (백엔드)
+    axios
+      .patch(
+        `${API_BASE_URL}/chat/room/${selectedRoom.chatRoomId}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
+      .catch(() => {});
+
+    // 👈 앱과 동일한 'chatRooms' 컬렉션 사용
     const q = query(
-      collection(db, "chatRooms"),
-      where("participants", "arrayContains", currentUserId)
+      collection(db, 'chatRooms', String(selectedRoom.chatRoomId), 'messages'),
+      orderBy('createdAt', 'asc'),
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const rooms = snapshot.docs.map(doc => ({
-        chatRoomId: doc.id,
-        ...doc.data()
-      }));
-      setChatRooms(rooms);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setMessages(msgs);
+
+        setTimeout(() => {
+          if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }, 100);
+      },
+      (err) => {
+        console.error('Firestore 구독 에러 (인덱스 생성 링크 확인):', err);
+      },
+    );
 
     return () => unsubscribe();
-  }, []);
-  */
+  }, [selectedRoom]);
+
+  // 5. 메시지 전송 로직 (앱 규격 일치)
+  const saveMessage = async (type, content, fileUrl = null) => {
+    if (!userData || !userData.id) {
+      alert('유저 정보를 불러올 수 없습니다. 다시 로그인해 주세요.');
+      return;
+    }
+    if (!selectedRoom) return;
+
+    const messageData = {
+      chatRoomId: selectedRoom.chatRoomId,
+      senderId: String(userData.id), // String으로 통일
+      senderNick: userData.userNick || userData.userId,
+      content: content, // message -> content (App 일치)
+      chatType: type, // TEXT or IMAGE
+      fileUrl: fileUrl,
+      createDate: new Date().toISOString(),
+      isRead: false, // isReadYn -> isRead (boolean)
+    };
+
+    try {
+      await addDoc(collection(db, 'chatRooms', String(selectedRoom.chatRoomId), 'messages'), {
+        ...messageData,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error('메시지 전송 실패:', err);
+    }
+  };
 
   const handleSend = () => {
     if (!message.trim()) return;
-    console.log(`[${selectedRoom.warehouseName}]에 메시지 전송:`, message);
+    saveMessage('TEXT', message);
     setMessage('');
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const token = localStorage.getItem('ACCESS_TOKEN');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await axios.post(`${API_BASE_URL}/chat/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.data.url) saveMessage('IMAGE', '[사진]', res.data.url);
+    } catch (err) {
+      alert('이미지 업로드 실패');
+    }
   };
 
   return (
     <>
-      {/* 1. 클릭 시 위로 솟아오르는 인스타그램 스타일 채팅 서랍 */}
+      {/* ─── 채팅창 본체 ─── */}
       <div
-        className={`bg-white rounded-4 shadow-lg border border-light flex-column ${
-          isOpen ? 'd-flex' : 'd-none'
-        }`}
+        className={`bg-white rounded-4 shadow-lg border flex-column ${isOpen ? 'd-flex' : 'd-none'}`}
         style={{
           position: 'fixed',
           bottom: '80px',
           right: '20px',
           width: '330px',
-          height: '450px',
+          height: '480px',
           zIndex: 1050,
-          transition: 'all 0.2s ease',
         }}
       >
-        {/* ─── 헤더 영역 ─── */}
+        {/* 헤더 */}
         <div className="p-3 border-bottom d-flex justify-content-between align-items-center bg-light rounded-top-4">
           <div className="d-flex align-items-center gap-2">
             {selectedRoom && (
               <ChevronLeft
                 size={20}
-                className="cursor-pointer text-secondary"
-                style={{ cursor: 'pointer' }}
+                className="cursor-pointer"
                 onClick={() => setSelectedRoom(null)}
               />
             )}
-            <div
-              className="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center font-bold"
-              style={{ width: '32px', height: '32px', fontSize: '12px' }}
-            >
-              W
-            </div>
             <span
-              className="fw-bold text-dark"
-              style={{ fontSize: '14px', maxWidth: '180px' }}
-              className="text-truncate"
+              className="fw-bold text-dark text-truncate"
+              style={{ maxWidth: '180px', fontSize: '14px' }}
             >
-              {selectedRoom ? selectedRoom.warehouseName : '채팅 목록'}
+              {selectedRoom ? selectedRoom.warehouseName : '메시지 목록'}
             </span>
           </div>
           <Button
@@ -103,103 +198,105 @@ export default function FloatingChatBar() {
           </Button>
         </div>
 
-        {/* ─── 본문 영역 (목록 vs 대화창 분기) ─── */}
-        <div className="flex-grow-1 overflow-auto bg-white" style={{ fontSize: '13px' }}>
-          {!selectedRoom ? (
-            // 📁 목록 화면 (ChatRoomDTO 기반 렌더링)
-            chatRooms.length > 0 ? (
-              chatRooms.map((room) => (
+        {/* 본문 */}
+        <div
+          ref={scrollRef}
+          className="flex-grow-1 overflow-auto bg-white p-3 d-flex flex-column gap-3"
+          style={{ fontSize: '13px' }}
+        >
+          {!selectedRoom
+            ? chatRooms.map((room) => (
                 <div
                   key={room.chatRoomId}
-                  className="p-3 border-bottom d-flex align-items-center justify-content-between hover-bg-light"
-                  style={{ cursor: 'pointer', transition: 'background 0.2s' }}
+                  className="p-2 border-bottom hover-bg-light cursor-pointer"
                   onClick={() => setSelectedRoom(room)}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <div className="d-flex flex-column" style={{ maxWidth: '70%' }}>
-                    <span className="fw-bold text-dark text-truncate">{room.warehouseName}</span>
-                    <span className="text-secondary" style={{ fontSize: '11px' }}>
-                      상대: {room.userid}
-                    </span>
-                  </div>
-                  <span className="text-muted" style={{ fontSize: '10px' }}>
-                    {room.updateDate.substring(11, 16)} {/* 시간만 추출 */}
-                  </span>
+                  <div className="fw-bold">{room.warehouseName}</div>
+                  <div className="text-muted small">상대: {room.userid || '관리자'}</div>
                 </div>
               ))
-            ) : (
-              <div className="text-center py-5 text-muted">참여 중인 채팅방이 없습니다.</div>
-            )
-          ) : (
-            // 💬 대화 화면
-            <div className="p-3">
-              <div
-                className="bg-light p-2 rounded-3 text-dark d-inline-block"
-                style={{ maxWidth: '80%' }}
-              >
-                안녕하세요! {selectedRoom.warehouseName}에 대해 무엇을 도와드릴까요?
-              </div>
-            </div>
-          )}
+            : messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`d-flex flex-column ${String(msg.senderId) === String(userData?.id) ? 'align-items-end' : 'align-items-start'}`}
+                >
+                  {msg.chatType === 'IMAGE' ? (
+                    <img
+                      src={msg.fileUrl}
+                      alt="chat"
+                      className="rounded-3 shadow-sm mb-1"
+                      style={{ maxWidth: '75%', cursor: 'pointer' }}
+                      onClick={() => window.open(msg.fileUrl)}
+                    />
+                  ) : (
+                    <div
+                      className={`p-2 rounded-3 ${String(msg.senderId) === String(userData?.id) ? 'bg-purple-600 text-white' : 'bg-light text-dark'}`}
+                    >
+                      {msg.content}
+                    </div>
+                  )}
+                  <div className="text-muted mt-1" style={{ fontSize: '9px' }}>
+                    {!msg.isRead && String(msg.senderId) === String(userData?.id) && (
+                      <span className="text-warning fw-bold me-1">1</span>
+                    )}
+                    {msg.createDate &&
+                      new Date(msg.createDate).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                  </div>
+                </div>
+              ))}
         </div>
 
-        {/* ─── 입력창 영역 (대화창이 열렸을 때만 노출) ─── */}
+        {/* 하단 입력창 */}
         {selectedRoom && (
           <div className="p-3 border-top">
-            <div className="d-flex align-items-center gap-2 bg-light rounded-pill px-3 py-1">
+            <div className="d-flex align-items-center gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="d-none"
+                onChange={handleImageUpload}
+                accept="image/*"
+              />
+              <Paperclip
+                size={20}
+                className="text-secondary cursor-pointer"
+                onClick={() => fileInputRef.current.click()}
+              />
               <Form.Control
                 type="text"
                 placeholder="메시지 입력..."
-                className="border-0 bg-transparent shadow-none p-1"
+                className="rounded-pill bg-light border-0 shadow-none"
                 style={{ fontSize: '13px' }}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               />
-              <div className="d-flex gap-2 text-secondary align-items-center">
-                <Smile size={16} style={{ cursor: 'pointer' }} />
-                <Heart size={16} style={{ cursor: 'pointer' }} />
-                <Button
-                  variant="link"
-                  className="text-primary p-0 text-decoration-none fw-bold"
-                  style={{ fontSize: '13px' }}
-                  onClick={handleSend}
-                >
-                  전송
-                </Button>
-              </div>
+              <Send size={20} className="text-primary cursor-pointer" onClick={handleSend} />
             </div>
           </div>
         )}
       </div>
 
-      {/* 2. [요청하신 부분] 우측 하단 고정 플로팅 바 (프로필 버블 삭제) */}
+      {/* 플로팅 버튼 */}
       <div
-        className="bg-white border shadow-sm rounded-4 py-2 px-3 d-flex justify-content-between align-items-center"
+        className="bg-white border shadow-sm rounded-pill py-2 px-3 d-flex align-items-center gap-2"
         style={{
           position: 'fixed',
           bottom: '20px',
           right: '20px',
-          width: '180px', // 버블이 빠졌으므로 가로 폭을 스마트하게 축소
           zIndex: 1040,
           cursor: 'pointer',
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="d-flex align-items-center gap-2">
-          <MessageSquare size={18} className="text-dark" />
-          <span className="fw-bold text-dark" style={{ fontSize: '14px' }}>
-            메시지
-          </span>
-        </div>
-
-        {/* 안 읽은 총 메시지 수 등 숫자를 배지 형태로 띄워주면 훨씬 깔끔합니다. */}
-        <span className="badge bg-danger rounded-pill" style={{ fontSize: '10px' }}>
-          2
-        </span>
+        <MessageSquare size={18} className="text-purple-600" />
+        <span className="fw-bold small">채팅 상담</span>
       </div>
     </>
   );
 }
+
 
