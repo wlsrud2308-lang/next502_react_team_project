@@ -112,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                   );
                 }
 
-                // 데이터가 있으면 리스트를 넘겨줍니다. (const 제거 필수!)
+
                 return WarehouseSlider(items: provider.warehouses);
               },
             ),
