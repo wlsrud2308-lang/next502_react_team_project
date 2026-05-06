@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+
 import Login from './components/auth/Login';
 import Auth from './components/auth/Auth';
 import Home from './components/Home';
@@ -9,21 +10,31 @@ import WarehouseListPage from './components/warehouse/WarehouseListPage';
 import WarehouseInsert from './components/warehouse/WarehouseInsert';
 import MyPage from './components/member/MyPage';
 import EditProfile from './components/member/EditProfile';
+import FavoriteList from './components/member/FavoriteList';
+import MyWarehouseList from './components/warehouse/MyWarehouseList';
+import ChatPage from './components/chat/ChatPage';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
+          {/* 공통 경로 */}
           <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Auth />} />
           <Route path="/search" element={<WarehouseSearchPage />} />
+
+          {/* 창고 관련 경로 */}
           <Route path="/warehouse/:id" element={<WarehouseDetail />} />
           <Route path="/warehouse/list" element={<WarehouseListPage />} />
           <Route path="/warehouse/insert" element={<WarehouseInsert />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Auth />} />
-          <Route path="/api/member/me" element={<MyPage />} />
-          <Route path="/api/member/me/edit" element={<EditProfile />} />
+          <Route path="/whInput" element={<WarehouseInsert />} />
+          <Route path="/my-warehouses" element={<MyWarehouseList />} />
+          <Route path="/mypage" element={<MyPage />} />
+          <Route path="/mypage/edit" element={<EditProfile />} />
+          <Route path="/favorites" element={<FavoriteList />} />
+          <Route path="/chat-list" element={<ChatPage />} />
         </Routes>
       </Router>
     </AuthProvider>

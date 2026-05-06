@@ -42,7 +42,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-
+    //  모든 접속 허용
     configuration.setAllowedOriginPatterns(Arrays.asList("*"));
     configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
@@ -64,21 +64,21 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .authorizeHttpRequests(auth -> auth
+                    // 1. 완전 공개
+                    .requestMatchers("/", "/auth/**", "/api/auth/**", "/ocr/**", "/ws-stomp/**", "/board/**", "/h2-console/**", "/uploads/**", "/error").permitAll()
+                    // 창고 관련 중 '검색'과 '상세조회'만 공개
+                    .requestMatchers("/warehouse/search", "/warehouse/{id:[0-9]+}").permitAll()
 
-                    .requestMatchers("/", "/auth/**", "/api/auth/**", "/ocr/**", "/warehouse/**", "/ws-stomp/**", "/board/**", "/h2-console/**", "/uploads/**", "/error").permitAll()
-
-                    // 2. 관리자 전용
+                    // 2. 임대인(PROVIDER) 및 관리자 전용
+                    // ★ '내 창고 목록'과 '창고 등록'은 임대인 권한이 있어야 함
+                    .requestMatchers("/warehouse/my-list", "/warehouse/insert").hasAnyAuthority("ROLE_PROVIDER", "ROLE_ADMIN")
                     .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 
-                    // 3. 채팅은 모든 회원 가능
-                    .requestMatchers("/chat/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
+                    // 3. 모든 로그인 회원 가능 (채팅, 찜, 마이페이지)
+                    .requestMatchers("/chat/**", "/favorite/**", "/member/**", "/api/member/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
 
-                    // 4. 회원 정보 및 찜하기 관련 (★ "/favorite/**" 추가: 찜 기능 권한 명시)
-                    .requestMatchers("/member/**", "/api/member/**", "/favorite/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
-
-                    // 5. 그 외 모든 요청은 인증 필요
+                    // 4. 그 외 모든 요청은 인증 필요
                     .anyRequest().authenticated())
-            // JWT 필터를 UsernamePasswordAuthenticationFilter 앞에 배치
             .addFilterBefore(jwtTokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
             .build();
   }

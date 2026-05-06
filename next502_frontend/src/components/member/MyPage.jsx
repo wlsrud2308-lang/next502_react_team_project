@@ -26,11 +26,13 @@ function MyPage() {
   }, []);
 
   const handleLogout = () => {
-    if (window.confirm('정말 로그아웃 하시겠습니까?')) {
+    if (window.confirm('정말 로그아웃 하시습니까?')) {
       logout();
       navigate('/');
     }
   };
+
+  const isProvider = memberInfo?.role === 'ROLE_PROVIDER' || memberInfo?.role === 'ROLE_ADMIN';
 
   if (isLoading) return <div className="text-center py-5">로딩 중...</div>;
 
@@ -55,7 +57,7 @@ function MyPage() {
                 <p className="text-secondary small mb-3">
                   {memberInfo?.userEmail || '이메일 정보 없음'}
                 </p>
-                {memberInfo?.role === 'ROLE_PROVIDER' && memberInfo?.businessName && (
+                {isProvider && memberInfo?.businessName && (
                   <div className="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-3">
                     🏢 {memberInfo.businessName}
                   </div>
@@ -63,7 +65,8 @@ function MyPage() {
 
                 <button
                   className="btn btn-outline-secondary btn-sm w-100 rounded-pill mt-2"
-                  onClick={() => navigate('/api/member/me/edit', { state: { memberInfo } })} // 데이터 함께 전달
+
+                  onClick={() => navigate('/mypage/edit', { state: { memberInfo } })}
                 >
                   회원 정보 수정
                 </button>
@@ -91,7 +94,7 @@ function MyPage() {
                     </button>
                     <button
                       className="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3 px-4 border-0"
-                      onClick={() => alert('준비 중입니다.')}
+                      onClick={() => navigate('/chat-list')}
                     >
                       <div className="d-flex align-items-center">
                         <span className="me-3 fs-5">💬</span>
@@ -103,6 +106,39 @@ function MyPage() {
                 </div>
               </div>
 
+              {/* 임대인 메뉴 */}
+              {isProvider && (
+                <div className="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+                  <div className="card-header bg-white border-0 pt-4 px-4">
+                    <h5 className="fw-bold mb-0">임대인 메뉴</h5>
+                  </div>
+                  <div className="card-body p-0">
+                    <div className="list-group list-group-flush">
+                      <button
+                        className="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3 px-4 border-0"
+                        onClick={() => navigate('/whInput')}
+                      >
+                        <div className="d-flex align-items-center">
+                          <span className="me-3 fs-5">🏗️</span>
+                          <span>창고 등록</span>
+                        </div>
+                        <span className="text-secondary small">❯</span>
+                      </button>
+                      <button
+                        className="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3 px-4 border-0"
+                        onClick={() => navigate('/my-warehouses')}
+                      >
+                        <div className="d-flex align-items-center">
+                          <span className="me-3 fs-5">📦</span>
+                          <span>내가 등록한 창고</span>
+                        </div>
+                        <span className="text-secondary small">❯</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* 설정 카드 */}
               <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div className="card-header bg-white border-0 pt-4 px-4">
@@ -110,16 +146,6 @@ function MyPage() {
                 </div>
                 <div className="card-body p-0">
                   <div className="list-group list-group-flush">
-                    <button
-                      className="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3 px-4 border-0"
-                      onClick={() => alert('준비 중입니다.')}
-                    >
-                      <div className="d-flex align-items-center">
-                        <span className="me-3 fs-5">🔔</span>
-                        <span>알림 설정</span>
-                      </div>
-                      <span className="text-secondary small">❯</span>
-                    </button>
                     <button
                       className="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3 px-4 border-0"
                       onClick={() => navigate('/faq')}
