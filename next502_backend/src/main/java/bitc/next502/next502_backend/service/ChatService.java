@@ -1,13 +1,17 @@
 package bitc.next502.next502_backend.service;
 
+import bitc.next502.next502_backend.domain.entity.ChatMessageEntity;
 import bitc.next502.next502_backend.domain.entity.ChatRoomEntity;
 import bitc.next502.next502_backend.domain.entity.MemberEntity;
 import bitc.next502.next502_backend.domain.entity.WarehouseEntity;
+import bitc.next502.next502_backend.domain.repository.ChatMessageRepository;
 import bitc.next502.next502_backend.domain.repository.ChatRoomRepository;
 import bitc.next502.next502_backend.domain.repository.WarehouseRepository;
-import com.google.firebase.auth.FirebaseAuth; // 👈 추가
-import com.google.firebase.auth.FirebaseAuthException; // 👈 추가
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,14 +28,13 @@ public class ChatService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final WarehouseRepository warehouseRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     /**
-     * 1. ⚠️ [추가] Firebase 인증을 위한 커스텀 토큰을 생성합니다.
-     * 플러터 앱이 Firestore에 접근하기 위해 이 토큰을 받아 로그인을 수행합니다.
+     * 1. Firebase 인증을 위한 커스텀 토큰 생성
      */
     public String createFirebaseCustomToken(String userId) {
         try {
-            // Firebase Admin SDK를 사용하여 사용자의 UID를 기반으로 Custom Token 생성
             return FirebaseAuth.getInstance().createCustomToken(userId);
         } catch (FirebaseAuthException e) {
             throw new RuntimeException("파이어베이스 토큰 발급에 실패했습니다.", e);
@@ -47,7 +50,7 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 창고입니다."));
 
         if (warehouse.getMember() == null) {
-            throw new IllegalStateException("창고 주인 정보가 없습니다. DB를 확인하세요.");
+            throw new IllegalStateException("창고 주인 정보가 없습니다.");
         }
 
         if (warehouse.getMember().getId().equals(currentUser.getId())) {
@@ -91,11 +94,22 @@ public class ChatService {
             throw new RuntimeException("파일 저장 중 오류가 발생했습니다.");
         }
 
-<<<<<<< HEAD
-        // 3. 에뮬레이터에서 접근 가능한 URL 반환
-=======
-        // 안드로이드 에뮬레이터 접근용 URL 반환
->>>>>>> csy/firebase_chat_server
-        return "http://10.0.2.2:8080/uploads/" + fileName;
+        // 에뮬레이터 접근용 주소 (실제 배포 시 서버 IP로 변경 필요)
+        return "http://10.0.2" + fileName;
+    }
+
+    /**
+     * 5. 특정 채팅방의 메시지 내역 조회 (Slice)
+     */
+    public Slice<ChatMessageEntity> getChatMessages(Long chatRoomId, Pageable pageable) {
+        return chatMessageRepository.findByChatRoom_ChatRoomIdOrderByIdDesc(chatRoomId, pageable);
+    }
+
+    /**
+     * 6. 읽음 처리 (벌크 업데이트)
+     */
+    @Transactional
+    public void markMessagesAsRead(Long chatRoomId, MemberEntity currentUser) {
+        chatMessageRepository.markAsRead(chatRoomId, currentUser.getId());
     }
 }

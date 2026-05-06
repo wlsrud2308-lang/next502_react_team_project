@@ -1,10 +1,15 @@
 package bitc.next502.next502_backend.controller;
 
+import bitc.next502.next502_backend.domain.dto.ChatMessageDTO;
 import bitc.next502.next502_backend.domain.dto.ChatRoomDTO;
+import bitc.next502.next502_backend.domain.entity.ChatMessageEntity;
 import bitc.next502.next502_backend.domain.entity.ChatRoomEntity;
 import bitc.next502.next502_backend.domain.entity.MemberEntity;
 import bitc.next502.next502_backend.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +26,7 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    // 1. 채팅방 생성
-    // (채팅 목록을 RDB에서 긁어오거나 트래킹하기 위해 기존 데이터베이스 방 생성 로직 유지)
+    // 1. 채팅방 생성 (MySQL 기반)
     @PostMapping("/room/{warehouseId}")
     public ResponseEntity<ChatRoomDTO> createRoom(
             @PathVariable("warehouseId") Long warehouseId,
@@ -37,7 +41,6 @@ public class ChatController {
     }
 
     // 2. 나의 채팅방 목록 조회
-    // (대화 목록 방의 존재 여부는 기존 RDB 데이터를 사용하여 빠르게 리턴)
     @GetMapping("/rooms")
     public ResponseEntity<List<ChatRoomDTO>> getMyRooms(
             @AuthenticationPrincipal MemberEntity member) {
@@ -58,8 +61,7 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
-<<<<<<< HEAD
-    // 3. 특정 채팅방의 메시지 내역 조회 (Slice<ChatMessageDTO>로 변환)
+    // 3. 특정 채팅방의 과거 메시지 내역 조회 (Slice 처리)
     @GetMapping("/room/{chatRoomId}/messages")
     public ResponseEntity<Slice<ChatMessageDTO>> getMessages(
             @PathVariable("chatRoomId") Long chatRoomId,
@@ -67,7 +69,7 @@ public class ChatController {
 
         Slice<ChatMessageEntity> messages = chatService.getChatMessages(chatRoomId, pageable);
 
-        // 메시지 엔티티를 DTO로 변환 (Proxy 에러 원천 차단)
+        // Entity -> DTO 변환 (LocalDateTime을 String으로 변환하여 오류 해결)
         Slice<ChatMessageDTO> response = messages.map(msg -> ChatMessageDTO.builder()
                 .id(msg.getId())
                 .chatRoomId(chatRoomId)
@@ -76,14 +78,14 @@ public class ChatController {
                 .message(msg.getMessage())
                 .chatType(msg.getChatType())
                 .fileUrl(msg.getFileUrl())
-                .createDate(msg.getCreateDate())
+                .createDate(msg.getCreateDate() != null ? msg.getCreateDate().toString() : "")
                 .isReadYn(msg.getIsReadYn())
                 .build());
 
         return ResponseEntity.ok(response);
     }
 
-    // 4. 읽음 처리 (기존 유지)
+    // 4. 읽음 처리
     @PatchMapping("/room/{chatRoomId}/read")
     public ResponseEntity<Void> markAsRead(
             @PathVariable("chatRoomId") Long chatRoomId,
@@ -92,20 +94,30 @@ public class ChatController {
         return ResponseEntity.ok().build();
     }
 
-=======
-    // 3. 이미지 업로드 (플러터 연동 규격)
-    // 플러터 앱이 쏜 파일을 물리 폴더에 저장하고 URL만 가로채 JSON 객체로 반환합니다.
->>>>>>> csy/firebase_chat_server
+    // 5. 이미지 업로드 (플러터 연동용)
     @PostMapping("/upload")
     public ResponseEntity<Map<String, String>> uploadFile(
             @RequestParam("file") MultipartFile file) {
 
-        // ChatService의 물리 파일 저장 로직 호출 (UUID 처리 필수)
         String imageUrl = chatService.uploadImage(file);
 
         Map<String, String> response = new HashMap<>();
-        response.put("url", imageUrl); // 플러터 json.decode(response.body)['url'] 규격
+        response.put("url", imageUrl);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // 6. [추가 추천] Firebase 커스텀 토큰 발급
+    @GetMapping("/firebase-token")
+    public ResponseEntity<Map<String, String>> getFirebaseToken(
+            @AuthenticationPrincipal MemberEntity member) {
+
+        String customToken = chatService.createFirebaseCustomToken(member.getUserId());
+
+        Map<String, String> response = new HashMap<>();
+        response.put("token", customToken);
 
         return ResponseEntity.ok(response);
     }
 }
+
