@@ -36,7 +36,6 @@ class MessageList extends StatelessWidget {
         final bool isMe = msg.senderId.toString() == myId.toString();
         final String displayTime = _formatTime(msg.createdAt);
 
-        print("📩 메시지 타입: '${msg.chatType}', URL 존재여부: ${msg.fileUrl != null}");
 
         // 1. 이미지 타입인 경우
         if (msg.chatType.toUpperCase() == 'IMAGE' && msg.fileUrl != null) {

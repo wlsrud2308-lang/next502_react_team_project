@@ -95,7 +95,7 @@ public class ChatService {
         }
 
         // 에뮬레이터 접근용 주소 (실제 배포 시 서버 IP로 변경 필요)
-        return "http://10.0.2" + fileName;
+        return "http://10.0.2.2:8080/uploads/" + fileName;
     }
 
     /**

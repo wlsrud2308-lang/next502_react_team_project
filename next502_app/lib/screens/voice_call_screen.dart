@@ -1,10 +1,9 @@
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/agora_config.dart';
 
 class VoiceCallScreen extends StatefulWidget {
   final String channelId; // 채팅방 ID
@@ -25,6 +24,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
   bool _localUserJoined = false;
   int? _remoteUid;
   bool _isMuted = false;
+  bool _isSpeakerPhone = true;
 
   @override
   void initState() {
@@ -33,54 +33,48 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
   }
 
   Future<void> _initAgora() async {
-    final auth = context.read<AuthProvider>();
-
-    // 1. 마이크 권한 확인
+    // 1. 마이크 권한 확인 및 요청
     await [Permission.microphone].request();
 
-    // 2. 백엔드에서 보안 토큰 가져오기 (토큰 생성기를 구현한 경우)
-    // 만약 No Certificate 모드라면 이 부분은 생략하고 token: "" 로 접속 가능
-    String serverToken = "";
-    try {
-      final response = await http.get(
-        Uri.parse('http://10.0.2{widget.channelId}/token'),
-        headers: {'Authorization': 'Bearer ${auth.token}'},
-      );
-      if (response.statusCode == 200) {
-        serverToken = json.decode(response.body)['token'];
-      }
-    } catch (e) {
-      debugPrint("토큰 가져오기 실패: $e");
-    }
-
-    // 3. 엔진 초기화 (본인의 아고라 App ID 입력)
+    // 2. 아고라 엔진 초기화 (App ID 입력)
     _engine = createAgoraRtcEngine();
     await _engine.initialize(const RtcEngineContext(
-      appId: "여기에_아고라_APP_ID_복사",
+      appId: AgoraConfig.appId,
     ));
 
-    // 4. 이벤트 핸들러 등록
+    // 3. 이벤트 핸들러 등록
     _engine.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
-          setState(() => _localUserJoined = true);
+          debugPrint("✅ 아고라 채널 입장 성공 (방 ID: ${widget.channelId})");
+          if (mounted) setState(() => _localUserJoined = true);
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
-          setState(() => _remoteUid = remoteUid);
+          debugPrint("👤 상대방 입장 완료 (UID: $remoteUid)");
+          if (mounted) setState(() => _remoteUid = remoteUid);
         },
         onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
-          setState(() => _remoteUid = null);
-          Navigator.pop(context); // 상대방이 나가면 통화 종료
+          debugPrint("👋 상대방이 나갔습니다.");
+          if (mounted) {
+            setState(() => _remoteUid = null);
+            Navigator.pop(context); // 상대방이 나가면 통화 자동 종료
+          }
+        },
+        onError: (ErrorCodeType err, String msg) {
+          debugPrint("❌ 아고라 에러 발생: $msg");
         },
       ),
     );
 
-    // 5. 오디오 설정 및 채널 입장
+    // 4. 오디오 설정
     await _engine.enableAudio();
+    await _engine.setEnableSpeakerphone(_isSpeakerPhone); // 기본 스피커폰 모드
+
+    // 5. 채널 입장 (인증서 미사용 모드이므로 토큰은 "" 빈값 전달)
     await _engine.joinChannel(
-      token: serverToken,
+      token: "", // 👈 아고라 콘솔에서 Certificate가 없으므로 빈 문자열 사용
       channelId: widget.channelId,
-      uid: 0,
+      uid: 0, // 0을 넣으면 아고라가 자동으로 유효한 UID 할당
       options: const ChannelMediaOptions(
         clientRoleType: ClientRoleType.clientRoleBroadcaster,
         channelProfile: ChannelProfileType.channelProfileCommunication,
@@ -88,16 +82,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
     );
   }
 
-  // 마이크 음소거 기능
+  // 마이크 음소거 제어
   void _onToggleMute() {
-    setState(() {
-      _isMuted = !_isMuted;
-    });
+    setState(() => _isMuted = !_isMuted);
     _engine.muteLocalAudioStream(_isMuted);
+  }
+
+  // 스피커폰 전환 제어
+  void _onToggleSpeaker() {
+    setState(() => _isSpeakerPhone = !_isSpeakerPhone);
+    _engine.setEnableSpeakerphone(_isSpeakerPhone);
   }
 
   @override
   void dispose() {
+    // 리소스 해제 필수
     _engine.leaveChannel();
     _engine.release();
     super.dispose();
@@ -106,59 +105,66 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A1A), // 다크 모드 배경
+      backgroundColor: const Color(0xFF1A1A1A), // 어두운 테마
       body: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // 상단: 정보 표시
+            // 상단 정보 영역
             Padding(
               padding: const EdgeInsets.only(top: 80),
               child: Column(
                 children: [
                   const CircleAvatar(
-                    radius: 50,
+                    radius: 55,
                     backgroundColor: Colors.deepPurple,
-                    child: Icon(Icons.person, size: 60, color: Colors.white),
+                    child: Icon(Icons.person, size: 65, color: Colors.white),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 25),
                   Text(
                     widget.userName,
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Text(
-                    _remoteUid == null ? "연결 중..." : "통화 중",
-                    style: TextStyle(color: _remoteUid == null ? Colors.grey : Colors.greenAccent, fontSize: 16),
+                    _remoteUid == null ? "연결 대기 중..." : "보이스톡 통화 중",
+                    style: TextStyle(
+                      color: _remoteUid == null ? Colors.grey : Colors.greenAccent,
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
             ),
 
-            // 하단: 제어 버튼
+            // 하단 제어 버튼 영역
             Padding(
-              padding: const EdgeInsets.only(bottom: 50),
+              padding: const EdgeInsets.only(bottom: 60),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // 음소거 버튼
+                  // 음소거
                   _buildControlButton(
                     icon: _isMuted ? Icons.mic_off : Icons.mic,
                     color: _isMuted ? Colors.red : Colors.white24,
                     onPressed: _onToggleMute,
                   ),
-                  // 종료 버튼
+                  // 통화 종료
                   _buildControlButton(
                     icon: Icons.call_end,
                     color: Colors.red,
-                    iconColor: Colors.white,
+                    iconSize: 35,
                     onPressed: () => Navigator.pop(context),
                   ),
-                  // 스피커 버튼 (기본은 스피커폰 모드)
+                  // 스피커폰
                   _buildControlButton(
-                    icon: Icons.volume_up,
-                    color: Colors.white24,
-                    onPressed: () {},
+                    icon: _isSpeakerPhone ? Icons.volume_up : Icons.volume_down,
+                    color: _isSpeakerPhone ? Colors.blueAccent : Colors.white24,
+                    onPressed: _onToggleSpeaker,
                   ),
                 ],
               ),
@@ -169,14 +175,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
     );
   }
 
-  Widget _buildControlButton({required IconData icon, required Color color, Color iconColor = Colors.white, required VoidCallback onPressed}) {
+  Widget _buildControlButton({
+    required IconData icon,
+    required Color color,
+    double iconSize = 28,
+    required VoidCallback onPressed,
+  }) {
     return RawMaterialButton(
       onPressed: onPressed,
       shape: const CircleBorder(),
       fillColor: color,
-      padding: const EdgeInsets.all(15),
-      child: Icon(icon, color: iconColor, size: 30),
+      padding: const EdgeInsets.all(18),
+      elevation: 2.0,
+      child: Icon(icon, color: Colors.white, size: iconSize),
     );
   }
 }
-
