@@ -165,4 +165,36 @@ export const insertWarehouse = async (warehouseData, imageFiles) => {
   }
 };
 
+// --- 추가할 API 함수들 ---
+
+// 찜 목록 조회
+export const getFavoriteList = async () => {
+  try {
+    const res = await api.get('/favorite/list');
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || '찜 목록 로드 실패';
+  }
+};
+
+// 찜하기 토글
+export const toggleFavorite = async (whId) => {
+  try {
+    const res = await api.post(`/favorite/${whId}`);
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || '찜하기 처리 실패';
+  }
+};
+
+// 내가 등록한 창고 목록 조회
+export const getMyWarehouseList = async () => {
+  try {
+    const res = await api.get('/warehouse/my-list');
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || '내 창고 목록 로드 실패';
+  }
+};
+
 export default api;

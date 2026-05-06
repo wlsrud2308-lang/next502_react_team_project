@@ -37,6 +37,19 @@ public class WarehouseController {
         return ResponseEntity.ok(warehouseDTO);
     }
 
+    // ★ 추가된 부분: 내가 등록한 창고 목록 가져오기 API
+    @GetMapping("/my-list")
+    public ResponseEntity<List<WarehouseDTO>> getMyWarehouseList(
+            @AuthenticationPrincipal MemberEntity member) {
+
+        if (member == null) {
+            return ResponseEntity.status(401).build(); // 로그인 안 된 경우 처리
+        }
+
+        List<WarehouseDTO> myList = warehouseService.getMyWarehouseList(member);
+        return ResponseEntity.ok(myList);
+    }
+
     /**
      * 창고 등록 (multipart/form-data)
      * - data: WarehouseDTO 의 JSON 문자열

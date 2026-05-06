@@ -42,9 +42,9 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    // 허용할 프론트엔드 주소들
-    configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
-    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT",  "PATCH", "DELETE", "OPTIONS"));
+    //  모든 접속 허용
+    configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
     configuration.setAllowCredentials(true);
 
@@ -64,21 +64,21 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .authorizeHttpRequests(auth -> auth
-                    // 1. 누구나 접근 가능한 경로 (로그인, 회원가입, 아이디/비번 찾기, OCR 등)
-                    .requestMatchers("/", "/auth/**", "/api/auth/**", "/ocr/**", "/warehouse/**", "/ws-stomp/**", "/board/**", "/h2-console/**", "/uploads/**").permitAll()
+                    // 1. 완전 공개
+                    .requestMatchers("/", "/auth/**", "/api/auth/**", "/ocr/**", "/ws-stomp/**", "/board/**", "/h2-console/**", "/uploads/**", "/error").permitAll()
+                    // 창고 관련 중 '검색'과 '상세조회'만 공개
+                    .requestMatchers("/warehouse/search", "/warehouse/{id:[0-9]+}").permitAll()
 
-                    // 2. 관리자 전용
+                    // 2. 임대인(PROVIDER) 및 관리자 전용
+                    // ★ '내 창고 목록'과 '창고 등록'은 임대인 권한이 있어야 함
+                    .requestMatchers("/warehouse/my-list", "/warehouse/insert").hasAnyAuthority("ROLE_PROVIDER", "ROLE_ADMIN")
                     .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 
-                    // 3. 채팅은 모든 회원 가능
-                    .requestMatchers("/chat/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
+                    // 3. 모든 로그인 회원 가능 (채팅, 찜, 마이페이지)
+                    .requestMatchers("/chat/**", "/favorite/**", "/member/**", "/api/member/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
 
-                    // 4. 회원 정보 관련 (마이페이지, 수정 등)
-                    .requestMatchers("/member/**", "/api/member/**").hasAnyAuthority("ROLE_MEMBER", "ROLE_PROVIDER", "ROLE_ADMIN")
-
-                    // 5. 그 외 모든 요청은 인증 필요
+                    // 4. 그 외 모든 요청은 인증 필요
                     .anyRequest().authenticated())
-            // JWT 필터를 UsernamePasswordAuthenticationFilter 앞에 배치
             .addFilterBefore(jwtTokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
             .build();
   }

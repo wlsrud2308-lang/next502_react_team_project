@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-// 새롭게 만든 모달 컴포넌트 임포트
+
 import LoginModal from '../auth/LoginModal';
 import SignupModal from '../auth/SignupModal';
 
@@ -146,7 +146,8 @@ function Header() {
               <>
                 <button
                   className={`btn btn-sm d-none d-md-block fw-bold px-3 rounded-pill ${btnClass}`}
-                  onClick={() => navigate('/api/member/me')}
+
+                  onClick={() => navigate('/mypage')}
                 >
                   내 정보
                 </button>
