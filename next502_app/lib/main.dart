@@ -18,6 +18,7 @@ import 'package:next502_app/screens/warehouse_info_screen.dart';
 import 'package:next502_app/screens/warehouse_input_screen.dart';
 import 'package:next502_app/screens/warehouse_list_screen.dart';
 import 'package:next502_app/screens/warehouse_map_screen.dart';
+import 'package:next502_app/widgets/call_listener.dart';
 import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -88,6 +89,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      builder: (context, child) {
+        return CallListener(child: child!);
+      },
       // 시작 페이지를 로그인 화면으로 변경
       initialRoute: '/',
       routes: {
