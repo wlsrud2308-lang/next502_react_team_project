@@ -102,10 +102,13 @@ class _CallListenerState extends State<CallListener> {
               Navigator.pop(ctx);
               setState(() => _isCallDialogShowing = false);
 
-              // 3. 받기 버튼 클릭 시 어느 화면에서든 통화 화면으로 이동!
+              final String targetRoomId = data['chatRoomId']?.toString() ?? roomId;
+
+              debugPrint("📞 보이스톡 입장 시도 - 대상 방 ID: $targetRoomId");
+
               Navigator.push(context, MaterialPageRoute(
                 builder: (context) => VoiceCallScreen(
-                  channelId: roomId,
+                  channelId: targetRoomId,
                   userName: data['senderName'] ?? "상대방",
                 ),
               ));

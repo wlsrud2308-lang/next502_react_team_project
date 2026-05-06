@@ -30,10 +30,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // 👈 StreamBuilder 내부에서 다이얼로그 무한 루프 팝업이 도는 것을 방지하기 위한 변수
-  bool _isCallDialogShowing = false;
-  String? _lastVoiceCallId;
-
   @override
   void initState() {
     super.initState();
@@ -118,6 +114,7 @@ class _ChatScreenState extends State<ChatScreen> {
         'isRead': false,
         'chatType': 'VOICE',
         'senderName': auth.userId.toString(),
+        'chatRoomId': widget.chatRoomId, // 👈 [추가] 방 번호를 데이터에 심어줌
       });
 
       _goToCall();
@@ -134,35 +131,6 @@ class _ChatScreenState extends State<ChatScreen> {
           channelId: widget.chatRoomId.toString(),
           userName: widget.warehouseName,
         ),
-      ),
-    );
-  }
-
-  // 보이스톡 수신 팝업
-  void _showCallAcceptDialog(String? senderName) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text("보이스톡 요청"),
-        content: Text("${senderName ?? '상대방'}님이 보이스톡을 요청했습니다."),
-        actions: [
-          TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _isCallDialogShowing = false; // 플래그 해제
-              },
-              child: const Text("거절", style: TextStyle(color: Colors.red))
-          ),
-          ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _isCallDialogShowing = false; // 플래그 해제
-                _goToCall();
-              },
-              child: const Text("받기")
-          ),
-        ],
       ),
     );
   }
@@ -216,24 +184,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   final data = doc.data() as Map<String, dynamic>;
                   return ChatMessageModel.fromFirestore(doc.id, data);
                 }).toList();
-
-                // ⚠️ 5. [실시간 보이스톡 팝업 가로채기 중복 방지 로직]
-                final firstDoc = snapshot.data!.docs.first;
-                final firstData = firstDoc.data() as Map<String, dynamic>;
-
-                if (messages.isNotEmpty &&
-                    messages.first.chatType == 'VOICE' &&
-                    messages.first.senderId != myId.toString() &&
-                    _lastVoiceCallId != firstDoc.id && // 새로운 통화 고유 ID 일때만 실행
-                    !_isCallDialogShowing) { // 다이얼로그가 안 떠있을 때만 실행
-
-                  _isCallDialogShowing = true;
-                  _lastVoiceCallId = firstDoc.id;
-
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _showCallAcceptDialog(firstData['senderName']);
-                  });
-                }
 
                 // 6. [기존 위젯 재사용] 데이터 매핑
                 return MessageList(messages: messages, myId: myId);
