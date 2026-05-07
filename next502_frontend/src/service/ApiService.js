@@ -156,9 +156,6 @@ export const getMyWarehouseList = async () => {
   }
 };
 
-// ==========================================
-// 3. 회원 정보 및 기타 (OCR, Favorites)
-// ==========================================
 
 // 내 정보 조회
 export const getMyInfo = async () => {
@@ -212,6 +209,28 @@ export const toggleFavorite = async (whId) => {
     return res.data;
   } catch (err) {
     throw err.response?.data || '찜하기 처리 실패';
+  }
+};
+
+// 창고 수정
+export const updateWarehouseInfo = async (id, formData) => {
+  try {
+    const res = await api.put(`/warehouse/update/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || '수정 실패';
+  }
+};
+
+
+export const deleteWarehouse = async (id) => {
+  try {
+    const res = await api.delete(`/warehouse/delete/${id}`);
+    return res.data;
+  } catch (err) {
+    throw err.response?.data || '삭제 실패';
   }
 };
 

@@ -13,6 +13,7 @@ import EditProfile from './components/member/EditProfile';
 import FavoriteList from './components/member/FavoriteList';
 import MyWarehouseList from './components/warehouse/MyWarehouseList';
 import ChatPage from './components/chat/ChatPage';
+import WarehouseEdit from './components/warehouse/WarehouseEdit';
 
 function App() {
   return (
@@ -25,11 +26,12 @@ function App() {
           <Route path="/signup" element={<Auth />} />
           <Route path="/search" element={<WarehouseSearchPage />} />
 
-          {/* 창고 관련 경로 */}
+
           <Route path="/warehouse/:id" element={<WarehouseDetail />} />
           <Route path="/warehouse/list" element={<WarehouseListPage />} />
           <Route path="/warehouse/insert" element={<WarehouseInsert />} />
           <Route path="/whInput" element={<WarehouseInsert />} />
+          <Route path="/warehouse/edit/:id" element={<WarehouseEdit />} />
           <Route path="/my-warehouses" element={<MyWarehouseList />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/mypage/edit" element={<EditProfile />} />
