@@ -2,11 +2,23 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { Container, Row, Col, Badge, Card, Button, Spinner, Carousel } from 'react-bootstrap';
+// toggleFavorite 추가
 import { fetchWarehouseDetail, toggleFavorite } from '../../service/ApiService';
-import { MapPin, Box, Maximize, Info, Phone, Clock, ShieldCheck, Activity } from 'lucide-react';
+import {
+  MapPin,
+  Box,
+  Maximize,
+  Info,
+  Phone,
+  Clock,
+  ShieldCheck,
+  Activity,
+  Map as MapIcon,
+} from 'lucide-react';
 import Header from '../layout/Header.jsx';
 import Footer from '../layout/Footer.jsx';
 import FloatingChatBar from '../chat/FloatingChatBar';
+import NaverMapContainer from './NaverMapContainer'; // 지도 컴포넌트 복구
 import './WarehouseDetail.css';
 import WarehouseModel from '../../assets/warehouse-model.png';
 
@@ -19,7 +31,7 @@ const WarehouseDetail = () => {
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatRoom, setSelectedChatRoom] = useState(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false); // 찜하기 상태 복구
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -86,7 +98,8 @@ const WarehouseDetail = () => {
       <Header />
 
       <Container className="pt-5 mt-5 pb-5">
-        <div className="mb-4 bg-white p-4 rounded-4 fidelity-card border-0">
+        {/* 상단 타이틀 섹션 */}
+        <div className="mb-4 bg-white p-4 rounded-4 fidelity-card border-0 shadow-sm">
           <div className="d-flex justify-content-between align-items-start">
             <div>
               <div className="d-flex align-items-center gap-2 mb-2">
@@ -117,6 +130,7 @@ const WarehouseDetail = () => {
         <Row className="g-4">
           <Col lg={8}>
             <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+              {/* 이미지 캐러셀 */}
               {imageList.length > 0 ? (
                 <Carousel interval={null} variant="dark">
                   {imageList.map((imgUrl, index) => (
@@ -141,8 +155,30 @@ const WarehouseDetail = () => {
                 <h3 className="fw-bold mb-4 border-bottom pb-2">
                   <Info className="me-2 text-primary" /> 창고 상세 소개
                 </h3>
-                <p className="text-muted fs-5 leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>
+                <p
+                  className="text-muted fs-5 leading-relaxed mb-5"
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
                   {warehouse.description || '등록된 상세 정보가 없습니다.'}
+                </p>
+
+                {/* 지도 섹션 복구 */}
+                <h3 className="fw-bold mb-4 border-bottom pb-2">
+                  <MapIcon className="me-2 text-success" /> 위치 정보
+                </h3>
+                <div
+                  className="rounded-4 overflow-hidden border shadow-sm mb-3"
+                  style={{ height: '400px', width: '100%' }}
+                >
+                  {warehouse && (
+                    <NaverMapContainer
+                      warehouses={[warehouse]}
+                      onMarkerClick={(whId) => console.log('마커 클릭:', whId)}
+                    />
+                  )}
+                </div>
+                <p className="text-secondary">
+                  <MapPin size={16} className="me-1" /> {warehouse.address}
                 </p>
               </Card.Body>
             </Card>
@@ -150,7 +186,7 @@ const WarehouseDetail = () => {
 
           <Col lg={4}>
             <div className="sticky-top" style={{ top: '120px' }}>
-              <Card className="border-0 rounded-4 p-4 mb-4 fidelity-card bg-white">
+              <Card className="border-0 rounded-4 p-4 mb-4 fidelity-card bg-white shadow-sm">
                 <h4 className="fw-bold mb-4 border-bottom pb-2">창고 제원 요약</h4>
 
                 <div className="d-flex justify-content-between mb-3 border-bottom pb-2">
@@ -176,6 +212,7 @@ const WarehouseDetail = () => {
                   </span>
                 </div>
 
+                {/* 가동률 게이지 모델 섹션 */}
                 <div className="mb-4 p-4 rounded-4 fidelity-usage-area bg-light">
                   <div className="d-flex justify-content-between mb-3 fw-bold">
                     <span className="text-secondary d-flex align-items-center">
@@ -185,37 +222,23 @@ const WarehouseDetail = () => {
                   </div>
 
                   <div className="d-flex align-items-center gap-3">
-
                     <div
                       className="position-relative fidelity-mask-wrapper"
-                      style={{
-                        width: '110px',
-                        height: '145px',
-                        flexShrink: 0,
-                      }}
+                      style={{ width: '110px', height: '145px', flexShrink: 0 }}
                     >
                       <img
                         src={WarehouseModel}
                         alt="창고 모형"
                         className="w-100 h-100 position-absolute top-0 start-0 fidelity-mask-bg"
-                        style={{ objectFit: 'contain' }}
+                        style={{ objectFit: 'contain', zIndex: 2 }}
                       />
                       <div className="fidelity-mask-water-container w-100 h-100 position-absolute bottom-0 start-0">
                         <div
                           className="fidelity-water-gauge position-absolute bottom-0 start-0 w-100"
-                          style={{
-                            height: `${usageRate}%`,
-                          }}
+                          style={{ height: `${usageRate}%` }}
                         />
                       </div>
-                      <span
-                        className="position-absolute top-50 start-50 translate-middle fw-bold fs-6 text-dark"
-                        style={{ textShadow: '1px 1px 0 #fff' }}
-                      >
-                        {usageRate}%
-                      </span>
                     </div>
-
 
                     <div className="flex-grow-1 text-end">
                       <div className="fs-6 fw-bold text-dark mb-1">현재 사용 중</div>
@@ -257,6 +280,7 @@ const WarehouseDetail = () => {
           </Col>
         </Row>
       </Container>
+
       <FloatingChatBar
         isOpen={isChatOpen}
         setIsOpen={setIsChatOpen}
