@@ -27,7 +27,6 @@ public class WarehouseController {
             @RequestParam(value = "location", required = false) String location,
             @RequestParam(value = "size", required = false) String size,
             @RequestParam(value = "name", required = false) String name) {
-
         return ResponseEntity.ok(warehouseService.searchWarehouses(location, size, name));
     }
 
@@ -37,49 +36,56 @@ public class WarehouseController {
         return ResponseEntity.ok(warehouseDTO);
     }
 
-    // ★ 추가된 부분: 내가 등록한 창고 목록 가져오기 API
     @GetMapping("/my-list")
-    public ResponseEntity<List<WarehouseDTO>> getMyWarehouseList(
-            @AuthenticationPrincipal MemberEntity member) {
-
-        if (member == null) {
-            return ResponseEntity.status(401).build(); // 로그인 안 된 경우 처리
-        }
-
-        List<WarehouseDTO> myList = warehouseService.getMyWarehouseList(member);
-        return ResponseEntity.ok(myList);
+    public ResponseEntity<List<WarehouseDTO>> getMyWarehouseList(@AuthenticationPrincipal MemberEntity member) {
+        if (member == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(warehouseService.getMyWarehouseList(member));
     }
 
-    /**
-     * 창고 등록 (multipart/form-data)
-     * - data: WarehouseDTO 의 JSON 문자열
-     * - images: 이미지 파일 배열 (첫 번째가 대표)
-     */
     @PostMapping(value = "/insert", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> insertWarehouse(
             @RequestPart("data") WarehouseDTO warehouseDTO,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @AuthenticationPrincipal MemberEntity member) {
-
-        if (member == null) {
-            return ResponseEntity.status(401).body("로그인이 필요합니다.");
-        }
-
-        // PROVIDER 권한 체크
+        if (member == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
         if (member.getRole() != Role.ROLE_PROVIDER && member.getRole() != Role.ROLE_ADMIN) {
-            return ResponseEntity.status(403).body("창고 등록은 임대인(PROVIDER) 회원만 가능합니다.");
+            return ResponseEntity.status(403).body("창고 등록은 임대인 회원만 가능합니다.");
         }
-
-        if (images == null || images.isEmpty()) {
-            return ResponseEntity.badRequest().body("이미지를 최소 1장 이상 업로드해주세요.");
-        }
-
         try {
             Long warehouseId = warehouseService.insertWarehouse(warehouseDTO, images, member);
             return ResponseEntity.ok().body(warehouseId);
         } catch (Exception e) {
-            log.error("[Warehouse] 등록 실패", e);
-            return ResponseEntity.internalServerError().body("창고 등록 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("등록 실패: " + e.getMessage());
+        }
+    }
+
+    @PutMapping(value = "/update/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateWarehouse(
+            @PathVariable("id") Long id,
+            @RequestPart("data") WarehouseDTO warehouseDTO,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @AuthenticationPrincipal MemberEntity member) {
+        if (member == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        try {
+            warehouseService.updateWarehouse(id, warehouseDTO, images);
+            return ResponseEntity.ok().body("수정 완료");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("수정 실패: " + e.getMessage());
+        }
+    }
+
+    
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> deleteWarehouse(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal MemberEntity member) {
+        if (member == null) return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        try {
+            warehouseService.deleteWarehouse(id, member);
+            return ResponseEntity.ok().body("삭제 완료");
+        } catch (Exception e) {
+            log.error("[Warehouse] 삭제 실패", e);
+            return ResponseEntity.internalServerError().body("삭제 실패: " + e.getMessage());
         }
     }
 }

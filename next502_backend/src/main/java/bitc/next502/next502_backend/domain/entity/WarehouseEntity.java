@@ -73,4 +73,6 @@ public class WarehouseEntity extends BaseTimeEntity {
         }
         return (int) Math.round((occupiedArea / totalArea) * 100);
     }
+
+
 }

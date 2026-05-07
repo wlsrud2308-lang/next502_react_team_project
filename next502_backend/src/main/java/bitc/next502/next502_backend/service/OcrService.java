@@ -84,7 +84,6 @@ public class OcrService {
         // 사업자번호
         registerNumber = extractRegisterNumber(text);
 
-
         String[] lines = text.split("\\r?\\n");
 
         for (int i = 0; i < lines.length; i++) {
@@ -96,27 +95,37 @@ public class OcrService {
                 companyName = extractValueAfterColon(line);
             }
             // 대표자
-            else if (representativeName == null && line.matches(".*성\\s*명.*")) {
+            else if (representativeName == null && line.matches(".*(성\\s*명|대\\s*표|성\\s*[A-Za-z가-힣]?\\s*[:：]).*")) {
                 String value = extractValueAfterColon(line);
                 if (value != null) {
-
-                    int idx = value.indexOf("생년월일");
+                    int idx = value.indexOf("생");
                     if (idx > 0) value = value.substring(0, idx).trim();
-                    representativeName = value;
+                    representativeName = value.replaceAll("[a-zA-Z:]", "").trim();
                 }
             }
             // 주소
-            else if (businessAddress == null && line.matches(".*사\\s*업\\s*장\\s*소\\s*재.*")) {
+            else if (businessAddress == null && line.matches(".*사\\s*업\\s*장.*") && !line.matches(".*(단\\s*위|적\\s*용).*")) {
                 String value = extractValueAfterColon(line);
 
                 if (value != null && i + 1 < lines.length) {
                     String nextLine = lines[i + 1].trim();
 
                     if (!nextLine.isEmpty()
-                            && !nextLine.matches(".*(업\\s*의|종\\s*류|발\\s*급|공\\s*동|전\\s*화|Fax|E-mail|사업자|전자).*")
+                            && !nextLine.matches(".*(업\\s*태|종\\s*목|업\\s*의|종\\s*류|발\\s*급|공\\s*동|전\\s*화|Fax|E-mail|사업자|전자).*")
                             && nextLine.length() < 50) {
                         value = value + " " + nextLine;
+
+
+                        if (i + 2 < lines.length) {
+                            String nextNextLine = lines[i + 2].trim();
+                            if (nextNextLine.matches("^[가-힣a-zA-Z0-9)]+$") && nextNextLine.length() < 5) {
+                                value = value + nextNextLine;
+                            }
+                        }
                     }
+                }
+                if (value != null) {
+                    value = value.replace("톡별시", "특별시").replace("툭별시", "특별시");
                 }
                 businessAddress = value;
             }
@@ -145,12 +154,11 @@ public class OcrService {
 
 
     private String extractValueAfterColon(String line) {
-        // 콜론 종류: : ：
+
         Pattern pattern = Pattern.compile("[:：]\\s*(.+)");
         Matcher matcher = pattern.matcher(line);
         if (matcher.find()) {
             String value = matcher.group(1).trim();
-
             value = value.replaceAll("[:：]\\s*$", "").trim();
             if (value.length() >= 1 && value.length() <= 200) {
                 return value;

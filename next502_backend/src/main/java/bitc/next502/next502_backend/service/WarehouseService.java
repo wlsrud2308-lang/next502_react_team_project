@@ -2,6 +2,7 @@ package bitc.next502.next502_backend.service;
 
 import bitc.next502.next502_backend.domain.dto.WarehouseDTO;
 import bitc.next502.next502_backend.domain.entity.MemberEntity;
+import bitc.next502.next502_backend.domain.entity.Role; // Role 추가
 import bitc.next502.next502_backend.domain.entity.WarehouseEntity;
 import bitc.next502.next502_backend.domain.entity.WarehouseImageEntity;
 import bitc.next502.next502_backend.domain.repository.WarehouseRepository;
@@ -31,6 +32,8 @@ public class WarehouseService {
     @Value("${upload.warehouse.path}")
     private String uploadPath;
 
+
+
     public List<WarehouseDTO> searchWarehouses(String addr, String size, String name) {
         String address = (addr == null || addr.trim().isEmpty()) ? null : addr;
         String sizeRank = (size == null || size.trim().isEmpty()) ? null : size;
@@ -43,16 +46,19 @@ public class WarehouseService {
                 .toList();
     }
 
+    public WarehouseEntity getWarehouseEntity(Long id) {
+        return warehouseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 창고를 찾을 수 없습니다. id: " + id));
+    }
+
     public WarehouseDTO getWarehouseDetail(Long id) {
         WarehouseEntity entity = warehouseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 창고를 찾을 수 없습니다."));
         return convertToDTO(entity);
     }
 
-    //  내가 등록한 창고 목록 가져오기
     public List<WarehouseDTO> getMyWarehouseList(MemberEntity member) {
         List<WarehouseEntity> myWarehouses = warehouseRepository.findByMember(member);
-
         return myWarehouses.stream()
                 .map(this::convertToDTO)
                 .toList();
@@ -60,14 +66,11 @@ public class WarehouseService {
 
     @Transactional
     public Long insertWarehouse(WarehouseDTO dto, List<MultipartFile> images, MemberEntity member) throws Exception {
-        // 1. 업로드 디렉토리 생성
         Path uploadDir = Paths.get(uploadPath);
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
-            log.info("[Warehouse] 업로드 디렉토리 생성: {}", uploadDir.toAbsolutePath());
         }
 
-        // 2. WarehouseEntity 생성
         WarehouseEntity warehouse = WarehouseEntity.builder()
                 .name(dto.getName())
                 .address(dto.getAddress())
@@ -84,7 +87,6 @@ public class WarehouseService {
                 .member(member)
                 .build();
 
-        // 3. 이미지 파일 저장 + Entity 생성
         List<WarehouseImageEntity> imageEntities = new ArrayList<>();
         String repImageUrl = null;
 
@@ -92,53 +94,96 @@ public class WarehouseService {
             MultipartFile file = images.get(i);
             if (file.isEmpty()) continue;
 
-            // UUID + 원본 확장자로 파일명 생성
-            String originalName = file.getOriginalFilename();
-            String ext = (originalName != null && originalName.contains("."))
-                    ? originalName.substring(originalName.lastIndexOf("."))
-                    : ".jpg";
-            String savedName = UUID.randomUUID() + ext;
-
-            // 로컬 저장
+            String savedName = UUID.randomUUID() + "_" + file.getOriginalFilename();
             File destFile = new File(uploadPath, savedName);
             file.transferTo(destFile);
 
-            // 클라이언트에서 접근할 URL 경로
             String imageUrl = "/uploads/warehouse/" + savedName;
-
-            // 첫 번째 이미지를 대표로
-            boolean isRep = (i == 0);
-            if (isRep) {
-                repImageUrl = imageUrl;
-            }
+            if (i == 0) repImageUrl = imageUrl;
 
             WarehouseImageEntity imageEntity = WarehouseImageEntity.builder()
                     .warehouse(warehouse)
                     .imageUrl(imageUrl)
-                    .isRepresentativeYn(isRep ? "Y" : "N")
+                    .isRepresentativeYn(i == 0 ? "Y" : "N")
                     .sortOrder(i)
                     .build();
-
             imageEntities.add(imageEntity);
         }
 
-        // 4. 대표 이미지 URL 설정 + 이미지 연결
         warehouse.setRepImageUrl(repImageUrl);
         warehouse.getImages().addAll(imageEntities);
 
-        // 5. 저장
         WarehouseEntity saved = warehouseRepository.save(warehouse);
-        log.info("[Warehouse] 등록 완료 - id: {}, 이미지 {}장", saved.getWarehouseId(), imageEntities.size());
-
         return saved.getWarehouseId();
     }
 
-    public WarehouseEntity getWarehouseEntity(Long id) {
-        return warehouseRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 창고를 찾을 수 없습니다. id: " + id));
+    @Transactional
+    public void updateWarehouse(Long id, WarehouseDTO dto, List<MultipartFile> images) throws Exception {
+        WarehouseEntity entity = warehouseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 창고를 찾을 수 없습니다."));
+
+        entity.setName(dto.getName());
+        entity.setAddress(dto.getAddress());
+        entity.setTotalArea(dto.getTotalArea() != null && !dto.getTotalArea().isEmpty()
+                ? Double.parseDouble(dto.getTotalArea()) : 0.0);
+        entity.setSizeRank(dto.getSizeRank());
+        entity.setStorageType(dto.getStorageType());
+        entity.setOperationStructure(dto.getOperationStructure());
+        entity.setDescription(dto.getDescription());
+        entity.setAmenities(dto.getAmenities());
+
+        if (images != null && !images.isEmpty() && !images.get(0).isEmpty()) {
+            entity.getImages().clear();
+            List<WarehouseImageEntity> newImageEntities = new ArrayList<>();
+            String repImageUrl = null;
+
+            for (int i = 0; i < images.size(); i++) {
+                MultipartFile file = images.get(i);
+                String savedName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+                File destFile = new File(uploadPath, savedName);
+                file.transferTo(destFile);
+
+                String imageUrl = "/uploads/warehouse/" + savedName;
+                if (i == 0) repImageUrl = imageUrl;
+
+                newImageEntities.add(WarehouseImageEntity.builder()
+                        .warehouse(entity)
+                        .imageUrl(imageUrl)
+                        .isRepresentativeYn(i == 0 ? "Y" : "N")
+                        .sortOrder(i)
+                        .build());
+            }
+            entity.setRepImageUrl(repImageUrl);
+            entity.getImages().addAll(newImageEntities);
+        }
+    }
+
+
+    @Transactional
+    public void deleteWarehouse(Long id, MemberEntity member) {
+
+        WarehouseEntity warehouse = warehouseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 창고가 존재하지 않습니다. id: " + id));
+
+
+        if (!warehouse.getMember().getId().equals(member.getId()) &&
+                member.getRole() != Role.ROLE_ADMIN) {
+            throw new RuntimeException("삭제 권한이 없습니다.");
+        }
+
+
+        warehouseRepository.delete(warehouse);
+        log.info("[Warehouse] 삭제 성공 - id: {}, 삭제자: {}", id, member.getUsername());
     }
 
     private WarehouseDTO convertToDTO(WarehouseEntity entity) {
+        List<String> imageUrlList = new ArrayList<>();
+        if (entity.getImages() != null && !entity.getImages().isEmpty()) {
+            imageUrlList = entity.getImages().stream()
+                    .map(WarehouseImageEntity::getImageUrl)
+                    .toList();
+        }
+
         return WarehouseDTO.builder()
                 .warehouseId(entity.getWarehouseId())
                 .name(entity.getName())
@@ -154,6 +199,7 @@ public class WarehouseService {
                 .description(entity.getDescription())
                 .amenities(entity.getAmenities())
                 .repImageUrl(entity.getRepImageUrl())
+                .imageUrls(imageUrlList)
                 .build();
     }
 }
