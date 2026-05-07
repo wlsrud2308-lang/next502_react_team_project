@@ -12,6 +12,8 @@ const API_BASE_URL = 'http://localhost:8080';
 function Home() {
   const navigate = useNavigate();
 
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
   // --- 1. 상수 데이터 ---
   const busanDistricts = [
     '강서구',
@@ -348,7 +350,7 @@ function Home() {
         </div>
       </section>
 
-      <FloatingChatBar />
+      <FloatingChatBar isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
       <Footer />
 
       <style

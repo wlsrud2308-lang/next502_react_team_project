@@ -13,10 +13,11 @@ import {
 } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 
-// ✅ 백엔드 주소 고정 (404 방지)
-const API_BASE_URL = 'http://localhost:8080';
+// ✅ 환경에 따른 API 주소 동적 설정
+const API_BASE_URL =
+  window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'http://10.0.2.2:8080';
 
-export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, initialRoom }) {
+export default function FloatingChatBar({ isOpen, setIsOpen, initialRoom }) {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [message, setMessage] = useState('');
   const [chatRooms, setChatRooms] = useState([]);
@@ -29,12 +30,18 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
   const scrollRef = useRef();
   const fileInputRef = useRef();
 
+  // 🖼️ 이미지 URL 처리 함수 (상상 경로 대응)
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  };
+
   // 1. [유저 정보 복구] Context가 비었을 때 로컬스토리지에서 가져옴
   useEffect(() => {
     if (authUserData) {
       setUserData(authUserData);
     } else {
-      const savedUser = localStorage.getItem('USER_INFO'); // 본인의 프로젝트 키 이름 확인 필요
+      const savedUser = localStorage.getItem('USER_INFO');
       if (savedUser) setUserData(JSON.parse(savedUser));
     }
   }, [authUserData]);
@@ -50,10 +57,10 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
   useEffect(() => {
     if (isOpen) {
       const token = localStorage.getItem('ACCESS_TOKEN');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
       axios
-        .get(`${API_BASE_URL}/chat/rooms`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        .get(`${API_BASE_URL}/chat/rooms`, config)
         .then((res) => setChatRooms(Array.isArray(res.data) ? res.data : []))
         .catch((err) => console.error('목록 로드 실패:', err));
     }
@@ -64,18 +71,14 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
     if (!selectedRoom) return;
 
     const token = localStorage.getItem('ACCESS_TOKEN');
-    // 읽음 처리 알림 (백엔드)
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+
+    // 읽음 처리 알림 (백엔드 MySQL 업데이트)
     axios
-      .patch(
-        `${API_BASE_URL}/chat/room/${selectedRoom.chatRoomId}/read`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      )
+      .patch(`${API_BASE_URL}/chat/room/${selectedRoom.chatRoomId}/read`, {}, config)
       .catch(() => {});
 
-    // 👈 앱과 동일한 'chatRooms' 컬렉션 사용
+    // Firestore 메시지 실시간 구독
     const q = query(
       collection(db, 'chatRooms', String(selectedRoom.chatRoomId), 'messages'),
       orderBy('createdAt', 'asc'),
@@ -90,19 +93,20 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
         }));
         setMessages(msgs);
 
+        // 메시지 수신 시 스크롤 하단 이동
         setTimeout(() => {
           if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }, 100);
       },
       (err) => {
-        console.error('Firestore 구독 에러 (인덱스 생성 링크 확인):', err);
+        console.error('Firestore 구독 에러:', err);
       },
     );
 
     return () => unsubscribe();
   }, [selectedRoom]);
 
-  // 5. 메시지 전송 로직 (앱 규격 일치)
+  // 5. 메시지 전송 로직
   const saveMessage = async (type, content, fileUrl = null) => {
     if (!userData || !userData.id) {
       alert('유저 정보를 불러올 수 없습니다. 다시 로그인해 주세요.');
@@ -112,13 +116,13 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
 
     const messageData = {
       chatRoomId: selectedRoom.chatRoomId,
-      senderId: String(userData.id), // String으로 통일
+      senderId: String(userData.id),
       senderNick: userData.userNick || userData.userId,
-      content: content, // message -> content (App 일치)
-      chatType: type, // TEXT or IMAGE
+      content: content,
+      chatType: type,
       fileUrl: fileUrl,
       createDate: new Date().toISOString(),
-      isRead: false, // isReadYn -> isRead (boolean)
+      isRead: false,
     };
 
     try {
@@ -152,6 +156,7 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
           Authorization: `Bearer ${token}`,
         },
       });
+      // 백엔드에서 받은 상대 경로 저장
       if (res.data.url) saveMessage('IMAGE', '[사진]', res.data.url);
     } catch (err) {
       alert('이미지 업로드 실패');
@@ -167,18 +172,19 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
           position: 'fixed',
           bottom: '80px',
           right: '20px',
-          width: '330px',
-          height: '480px',
+          width: '340px',
+          height: '500px',
           zIndex: 1050,
+          overflow: 'hidden',
         }}
       >
         {/* 헤더 */}
-        <div className="p-3 border-bottom d-flex justify-content-between align-items-center bg-light rounded-top-4">
+        <div className="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
           <div className="d-flex align-items-center gap-2">
             {selectedRoom && (
               <ChevronLeft
                 size={20}
-                className="cursor-pointer"
+                className="cursor-pointer text-secondary"
                 onClick={() => setSelectedRoom(null)}
               />
             )}
@@ -198,7 +204,7 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
           </Button>
         </div>
 
-        {/* 본문 */}
+        {/* 본문 (메시지 영역) */}
         <div
           ref={scrollRef}
           className="flex-grow-1 overflow-auto bg-white p-3 d-flex flex-column gap-3"
@@ -208,92 +214,111 @@ export default function FloatingChatBar({ isOpen, setIsOpen, warehouseName, init
             ? chatRooms.map((room) => (
                 <div
                   key={room.chatRoomId}
-                  className="p-2 border-bottom hover-bg-light cursor-pointer"
+                  className="p-3 border-bottom hover-bg-light cursor-pointer rounded-3 transition-all"
                   onClick={() => setSelectedRoom(room)}
                 >
-                  <div className="fw-bold">{room.warehouseName}</div>
+                  <div className="fw-bold text-dark">{room.warehouseName}</div>
                   <div className="text-muted small">상대: {room.userid || '관리자'}</div>
                 </div>
               ))
-            : messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`d-flex flex-column ${String(msg.senderId) === String(userData?.id) ? 'align-items-end' : 'align-items-start'}`}
-                >
-                  {msg.chatType === 'IMAGE' ? (
-                    <img
-                      src={msg.fileUrl}
-                      alt="chat"
-                      className="rounded-3 shadow-sm mb-1"
-                      style={{ maxWidth: '75%', cursor: 'pointer' }}
-                      onClick={() => window.open(msg.fileUrl)}
-                    />
-                  ) : (
-                    <div
-                      className={`p-2 rounded-3 ${String(msg.senderId) === String(userData?.id) ? 'bg-purple-600 text-white' : 'bg-light text-dark'}`}
-                    >
-                      {msg.content}
-                    </div>
-                  )}
-                  <div className="text-muted mt-1" style={{ fontSize: '9px' }}>
-                    {!msg.isRead && String(msg.senderId) === String(userData?.id) && (
-                      <span className="text-warning fw-bold me-1">1</span>
+            : messages.map((msg) => {
+                const isMine = String(msg.senderId) === String(userData?.id);
+                return (
+                  <div
+                    key={msg.id}
+                    className={`d-flex flex-column ${isMine ? 'align-items-end' : 'align-items-start'}`}
+                  >
+                    {msg.chatType === 'IMAGE' ? (
+                      <img
+                        src={getImageUrl(msg.fileUrl)}
+                        alt="chat"
+                        className="rounded-3 shadow-sm mb-1"
+                        style={{ maxWidth: '75%', cursor: 'pointer' }}
+                        onClick={() => window.open(getImageUrl(msg.fileUrl))}
+                      />
+                    ) : (
+                      <div
+                        className={`p-2 px-3 rounded-3 shadow-sm ${isMine ? 'rounded-tr-none' : 'rounded-tl-none'}`}
+                        style={{
+                          backgroundColor: isMine ? '#6f42c1' : '#f1f3f5',
+                          color: isMine ? '#ffffff' : '#212529',
+                          maxWidth: '85%',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {msg.content}
+                      </div>
                     )}
-                    {msg.createDate &&
-                      new Date(msg.createDate).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                    <div className="text-muted mt-1" style={{ fontSize: '9px' }}>
+                      {isMine && !msg.isRead && (
+                        <span className="text-warning fw-bold me-1">1</span>
+                      )}
+                      {msg.createDate &&
+                        new Date(msg.createDate).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
         </div>
 
         {/* 하단 입력창 */}
         {selectedRoom && (
-          <div className="p-3 border-top">
+          <div className="p-3 border-top bg-white">
             <div className="d-flex align-items-center gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
                 className="d-none"
-                onChange={handleImageUpload}
                 accept="image/*"
+                onChange={handleImageUpload}
               />
               <Paperclip
                 size={20}
-                className="text-secondary cursor-pointer"
+                className="text-secondary cursor-pointer hover-opacity"
                 onClick={() => fileInputRef.current.click()}
               />
               <Form.Control
                 type="text"
                 placeholder="메시지 입력..."
-                className="rounded-pill bg-light border-0 shadow-none"
+                className="rounded-pill bg-light border-0 shadow-none py-2"
                 style={{ fontSize: '13px' }}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               />
-              <Send size={20} className="text-primary cursor-pointer" onClick={handleSend} />
+              <Send
+                size={20}
+                className="cursor-pointer"
+                style={{ color: message.trim() ? '#6f42c1' : '#ccc', transition: 'color 0.2s' }}
+                onClick={handleSend}
+              />
             </div>
           </div>
         )}
       </div>
 
-      {/* 플로팅 버튼 */}
+      {/* ─── 플로팅 버튼 ─── */}
       <div
-        className="bg-white border shadow-sm rounded-pill py-2 px-3 d-flex align-items-center gap-2"
+        className="bg-white border shadow-lg rounded-pill py-2 px-3 d-flex align-items-center gap-2"
         style={{
           position: 'fixed',
           bottom: '20px',
           right: '20px',
           zIndex: 1040,
           cursor: 'pointer',
+          transition: 'transform 0.2s ease',
         }}
         onClick={() => setIsOpen(!isOpen)}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        <MessageSquare size={18} className="text-purple-600" />
-        <span className="fw-bold small">채팅 상담</span>
+        <MessageSquare size={18} style={{ color: '#6f42c1' }} />
+        <span className="fw-bold small" style={{ color: '#444' }}>
+          {isOpen ? '닫기' : '채팅 상담'}
+        </span>
       </div>
     </>
   );

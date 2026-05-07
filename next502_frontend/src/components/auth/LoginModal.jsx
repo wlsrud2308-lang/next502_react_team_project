@@ -14,6 +14,13 @@ function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
     e.preventDefault();
     try {
       const data = await apiLogin(userId, userPw);
+      const userInfo = {
+        id: data.userId || data.id,
+        userId: userId,
+        userNick: data.userNick || userId,
+      };
+      localStorage.setItem('USER_INFO', JSON.stringify(userInfo));
+      
       loginSuccess(data.token || data.accessToken, data.role, data.userId || data.id);
       onClose();
     } catch (err) {
