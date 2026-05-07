@@ -12,20 +12,52 @@ const API_BASE_URL = 'http://localhost:8080';
 function Home() {
   const navigate = useNavigate();
 
-  // 상태 관리
+  // --- 1. 상수 데이터 ---
+  const busanDistricts = [
+    '강서구',
+    '금정구',
+    '기장군',
+    '남구',
+    '동구',
+    '동래구',
+    '부산진구',
+    '북구',
+    '사상구',
+    '사하구',
+    '서구',
+    '수영구',
+    '연제구',
+    '영도구',
+    '중구',
+    '해운대구',
+  ];
+
+  const STORAGE_TYPES = [
+    '보통창고',
+    '야적창고',
+    '냉동/냉장창고',
+    '저장창고',
+    '간이창고',
+    '위험물창고',
+  ];
+
+  // --- 2. 상태 관리 (검색 필터 추가) ---
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 3;
 
-  // --- 1. DB 데이터 연동: 컴포넌트 마운트 시 데이터 호출 ---
+  // 검색을 위한 상태들
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  // --- 3. DB 데이터 연동 (초기 렌더링 시 최신 창고 6개) ---
   useEffect(() => {
     const getTopWarehouses = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('ACCESS_TOKEN');
-
-        // 전체 데이터를 가져온 후 최신순 6개만 사용 (백엔드에서 정렬해준다고 가정)
         const data = await fetchWarehouses('', '', '', token);
         setWarehouses(data.slice(0, 6));
       } catch (error) {
@@ -37,12 +69,23 @@ function Home() {
     getTopWarehouses();
   }, []);
 
+  // --- 4. 검색 실행 함수 ---
+  const handleSearch = () => {
+    // URLSearchParams를 이용해 쿼리 스트링 생성
+    // 예: /search?district=강서구&type=냉동/냉장창고&keyword=현대
+    const params = new URLSearchParams();
+    if (selectedDistrict) params.append('district', selectedDistrict);
+    if (selectedType) params.append('type', selectedType);
+    if (searchKeyword) params.append('keyword', searchKeyword);
+
+    // 검색 결과 페이지로 이동
+    navigate(`/search?${params.toString()}`);
+  };
+
   // 이미지 URL 변환 헬퍼 함수
   const getImageUrl = (url) => {
     if (!url) return 'https://via.placeholder.com/500x320?text=Warehouse+Image';
     if (url.startsWith('http')) return url;
-
-    // 윈도우 경로(\)가 저장되었을 경우 슬래시(/)로 치환
     const formattedUrl = url.replace(/\\/g, '/');
     return `${API_BASE_URL}${formattedUrl.startsWith('/') ? '' : '/'}${formattedUrl}`;
   };
@@ -55,7 +98,7 @@ function Home() {
     <div className="wrapper">
       <Header />
 
-      {/* ================= 1. 비주얼 히어로 섹션 ================= */}
+      {/* ================= 1. 비주얼 히어로 섹션 (검색바 연동) ================= */}
       <section
         className="hero-section text-white d-flex align-items-center"
         style={{
@@ -77,32 +120,53 @@ function Home() {
           >
             <div className="card-body p-1">
               <div className="row g-0 align-items-center">
+                {/* 지역 선택 */}
                 <div className="col-md-3 border-end">
-                  <select className="form-select border-0 shadow-none fw-bold text-primary">
-                    <option>지역(전체)</option>
-                    <option>강서구</option>
-                    <option>사하구</option>
+                  <select
+                    className="form-select border-0 shadow-none fw-bold text-primary"
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                  >
+                    <option value="">지역(전체)</option>
+                    {busanDistricts.map((district) => (
+                      <option key={district} value={district}>
+                        {district}
+                      </option>
+                    ))}
                   </select>
                 </div>
+                {/* 창고유형 선택 */}
                 <div className="col-md-3 border-end">
-                  <select className="form-select border-0 shadow-none fw-bold text-primary">
-                    <option>창고유형(전체)</option>
-                    <option>일반상온</option>
-                    <option>냉동냉장</option>
+                  <select
+                    className="form-select border-0 shadow-none fw-bold text-primary"
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                  >
+                    <option value="">창고유형(전체)</option>
+                    {STORAGE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
                 </div>
+                {/* 키워드 입력 */}
                 <div className="col-md-4">
                   <input
                     type="text"
                     className="form-control border-0 shadow-none"
                     placeholder="창고명을 입력하세요"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()} // 엔터키 지원
                   />
                 </div>
+                {/* 검색 버튼 */}
                 <div className="col-md-2">
                   <button
                     className="btn btn-primary w-100 py-3 fw-bold shadow-sm"
                     style={{ borderRadius: '10px' }}
-                    onClick={() => navigate('/search')}
+                    onClick={handleSearch}
                   >
                     검색
                   </button>
@@ -137,7 +201,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ================= 3. 실시간 추천 창고 섹션 (DB 연동) ================= */}
+      {/* ================= 3. 실시간 추천 창고 섹션 ================= */}
       <section className="py-5 bg-light">
         <div className="container py-4">
           <div className="d-flex justify-content-between align-items-center mb-5">
@@ -176,7 +240,6 @@ function Home() {
                       style={{ cursor: 'pointer' }}
                     >
                       <div className="position-relative">
-                        {/* 이미지 URL 파싱 적용 */}
                         <img
                           src={getImageUrl(w.repImageUrl)}
                           className="card-img-top"
@@ -219,7 +282,9 @@ function Home() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-5 text-muted">등록된 창고 정보가 없습니다.</div>
+                <div className="text-center py-5 text-muted w-100">
+                  등록된 창고 정보가 없습니다.
+                </div>
               )}
             </div>
           )}
@@ -254,7 +319,6 @@ function Home() {
           <div className="col-lg-5">
             <h4 className="fw-bold mb-4">주요 서비스</h4>
             <div className="row g-3">
-              {/* 창고등록 이동 이벤트 추가 */}
               <div className="col-6" onClick={() => navigate('/warehouse/insert')}>
                 <div className="bg-primary text-white p-4 rounded-4 text-center cursor-pointer hover-opacity h-100">
                   <i className="bi bi-building fs-1 d-block mb-2"></i>
@@ -285,7 +349,6 @@ function Home() {
       </section>
 
       <FloatingChatBar />
-
       <Footer />
 
       <style
