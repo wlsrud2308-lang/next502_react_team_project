@@ -10,6 +10,9 @@ if (envFile.exists()) {
 
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
     id("kotlin-android")
     // Flutter Gradle Plugin은 반드시 Android/Kotlin 플러그인 다음에 와야 함
     id("dev.flutter.flutter-gradle-plugin")

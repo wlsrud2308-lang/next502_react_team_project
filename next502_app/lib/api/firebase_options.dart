@@ -50,19 +50,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDCx2-gaIQWZgnakC48_Z8Z7OCzkC_aRTk',
-    appId: '1:33192132386:android:66832dfe4ab877097baf7b',
-    messagingSenderId: '33192132386',
-    projectId: 'warehouse-chat-b3200',
-    storageBucket: 'warehouse-chat-b3200.firebasestorage.app',
+    apiKey: 'AIzaSyBUsjRtpa6ogGtylRt_EXrY2y1m7iBvMS0',
+    appId: '1:811447269272:android:e90ca9e3ff270113bcdded',
+    messagingSenderId: '811447269272',
+    projectId: 'warehouse-chat-66b3f',
+    storageBucket: 'warehouse-chat-66b3f.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyArnetYBQoNkKt8z-9f9fl1CKgsskBTrBA',
-    appId: '1:33192132386:ios:9a06bf29c23c95167baf7b',
-    messagingSenderId: '33192132386',
-    projectId: 'warehouse-chat-b3200',
-    storageBucket: 'warehouse-chat-b3200.firebasestorage.app',
-    iosBundleId: 'com.bitc.warehousechat.warehouseChat',
+    apiKey: 'AIzaSyAt0K8-JdLD5vj3uWWXZ0OcHVf1slHxU1I',
+    appId: '1:811447269272:ios:addafea47ed649b0bcdded',
+    messagingSenderId: '811447269272',
+    projectId: 'warehouse-chat-66b3f',
+    storageBucket: 'warehouse-chat-66b3f.firebasestorage.app',
+    iosBundleId: 'com.example.next502App',
   );
 }

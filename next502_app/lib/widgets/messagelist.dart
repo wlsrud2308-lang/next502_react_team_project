@@ -7,7 +7,15 @@ class MessageList extends StatelessWidget {
   final List<ChatMessageModel> messages;
   final dynamic myId;
 
+  final String apiBaseUrl = "http://10.0.2.2:8080";
+
   const MessageList({super.key, required this.messages, required this.myId});
+
+  String _getImageUrl(String? url) {
+    if (url == null || url.isEmpty) return "";
+    // 이미 전체 주소(http)가 포함되어 있으면 그대로 사용, 아니면 베이스 URL 결합
+    return url.startsWith('http') ? url : "$apiBaseUrl$url";
+  }
 
   // 시간을 안전하게 잘라주는 헬퍼 함수
   String _formatTime(String createdAt) {
@@ -40,7 +48,7 @@ class MessageList extends StatelessWidget {
         // 1. 이미지 타입인 경우
         if (msg.chatType.toUpperCase() == 'IMAGE' && msg.fileUrl != null) {
           return ChatImageBubble(
-            imageUrl: msg.fileUrl!,
+            imageUrl: _getImageUrl(msg.fileUrl),
             isMe: isMe,
             time: displayTime,
           );
