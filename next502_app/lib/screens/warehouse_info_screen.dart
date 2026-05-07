@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart'; // 네이버 맵 추가
 import '../models/warehouse_model.dart';
 import 'chat_screen.dart';
 import 'package:next502_app/utils/image_url_helper.dart';
 import 'package:next502_app/services/api_client.dart';
-
 
 class WarehouseInfoScreen extends StatefulWidget {
   final WarehouseModel? warehouseData;
@@ -21,19 +21,15 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
   final _storage = const FlutterSecureStorage();
   final ApiClient _apiClient = ApiClient();
 
-  // ★ 하트 상태
   bool isFavorite = false;
 
   Future<void> _toggleFavorite(int warehouseId) async {
     try {
       final response = await _apiClient.toggleFavorite(warehouseId);
-
       if (response.statusCode == 200) {
-
         setState(() {
           isFavorite = !isFavorite;
         });
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(response.data.toString())),
@@ -49,9 +45,8 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
       }
     }
   }
-  Future<void> _startChat(int warehouseId, String warehouseName) async {
 
-    print("1. 채팅 시작 버튼 클릭됨! warehouseId: $warehouseId");
+  Future<void> _startChat(int warehouseId, String warehouseName) async {
     try {
       String? token = await _storage.read(key: 'accessToken');
       if (token == null) return;
@@ -88,7 +83,6 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     final warehouse = widget.warehouseData ?? ModalRoute.of(context)!.settings.arguments as WarehouseModel;
     final int warehouseId = warehouse.warehouseId;
 
@@ -98,7 +92,6 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-
             icon: Icon(
               isFavorite ? Icons.favorite : Icons.favorite_border,
               color: isFavorite ? Colors.redAccent : null,
@@ -153,6 +146,12 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
                     warehouse.description ?? "등록된 상세 설명이 없습니다.",
                     style: const TextStyle(height: 1.6, color: Colors.black87),
                   ),
+
+                  const Divider(height: 40),
+
+                  // ★ 네이버 지도 섹션 추가
+                  _buildNaverMapSection(warehouse),
+
                   const SizedBox(height: 100),
                 ],
               ),
@@ -196,6 +195,55 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // --- 추가된 지도 위젯 ---
+  Widget _buildNaverMapSection(WarehouseModel warehouse) {
+    // 위도, 경도 값이 없을 경우를 대비
+    if (warehouse.latitude == 0.0 || warehouse.longitude == 0.0) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("위치 정보", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 15),
+        Container(
+          height: 250,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: NaverMap(
+              options: NaverMapViewOptions(
+                initialCameraPosition: NCameraPosition(
+                  target: NLatLng(warehouse.latitude, warehouse.longitude),
+                  zoom: 14,
+                ),
+                // 상세 페이지이므로 지도가 스크롤을 가로채지 않도록 설정
+                scrollGesturesEnable: false,
+                zoomGesturesEnable: false,
+                consumeSymbolTapEvents: false,
+              ),
+              onMapReady: (controller) {
+                final marker = NMarker(
+                  id: 'location_${warehouse.warehouseId}',
+                  position: NLatLng(warehouse.latitude, warehouse.longitude),
+                  caption: NOverlayCaption(text: warehouse.name),
+                );
+                controller.addOverlay(marker);
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(warehouse.address, style: const TextStyle(color: Colors.black87, fontSize: 14)),
+      ],
     );
   }
 
