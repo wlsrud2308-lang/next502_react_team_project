@@ -14,6 +14,9 @@ import FavoriteList from './components/member/FavoriteList';
 import MyWarehouseList from './components/warehouse/MyWarehouseList';
 import ChatPage from './components/chat/ChatPage';
 import WarehouseEdit from './components/warehouse/WarehouseEdit';
+import CommunityPage from './components/community/CommunityPage';
+import CommunityDetailPage from './components/community/CommunityDetailPage';
+import CommunityWritePage from './components/community/CommunityWritePage';
 
 function App() {
   return (
@@ -26,7 +29,6 @@ function App() {
           <Route path="/signup" element={<Auth />} />
           <Route path="/search" element={<WarehouseSearchPage />} />
 
-
           <Route path="/warehouse/:id" element={<WarehouseDetail />} />
           <Route path="/warehouse/list" element={<WarehouseListPage />} />
           <Route path="/warehouse/insert" element={<WarehouseInsert />} />
@@ -37,6 +39,9 @@ function App() {
           <Route path="/mypage/edit" element={<EditProfile />} />
           <Route path="/favorites" element={<FavoriteList />} />
           <Route path="/chat-list" element={<ChatPage />} />
+          <Route path="/community/:category/:boardId" element={<CommunityDetailPage />} />
+          <Route path="/community/:category" element={<CommunityPage />} />
+          <Route path="/community/:category/write" element={<CommunityWritePage />} />
         </Routes>
       </Router>
     </AuthProvider>

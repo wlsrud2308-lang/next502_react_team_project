@@ -23,7 +23,11 @@ public class BoardEntity extends BaseTimeEntity {
 
     private String category; // 공지사항, 리뷰, Q&A 등
 
+    @Column(columnDefinition = "TEXT")
+    private String reply;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id") // 작성자
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"password", "authorities", "enabled", "accountNonExpired", "accountNonLocked", "credentialsNonExpired", "hibernateLazyInitializer", "handler"})
     private MemberEntity writer;
 }

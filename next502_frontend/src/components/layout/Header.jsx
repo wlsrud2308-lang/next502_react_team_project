@@ -41,10 +41,10 @@ function Header() {
     {
       title: '커뮤니티',
       items: [
-        { name: '공지사항', link: '#' },
-        { name: '자주 하는 질문', link: '#' },
-        { name: '묻고 답하기', link: '#' },
-        { name: '물류뉴스', link: '#' },
+        { name: '공지사항', link: '/community/notice' },
+        { name: '자주 하는 질문', link: '/community/faq' },
+        { name: '묻고 답하기', link: '/community/qna' },
+        { name: '물류뉴스', link: '/community/news' },
       ],
     },
   ];
