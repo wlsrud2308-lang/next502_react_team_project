@@ -17,6 +17,7 @@ import WarehouseEdit from './components/warehouse/WarehouseEdit';
 import CommunityPage from './components/community/CommunityPage';
 import CommunityDetailPage from './components/community/CommunityDetailPage';
 import CommunityWritePage from './components/community/CommunityWritePage';
+import About from './components/info/About';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
           <Route path="/community/:category/:boardId" element={<CommunityDetailPage />} />
           <Route path="/community/:category" element={<CommunityPage />} />
           <Route path="/community/:category/write" element={<CommunityWritePage />} />
+          <Route path="/about" element={<About />} />
         </Routes>
       </Router>
     </AuthProvider>

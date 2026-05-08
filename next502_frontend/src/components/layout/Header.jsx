@@ -23,7 +23,7 @@ function Header() {
     {
       title: '창고이음 소개',
       items: [
-        { name: '창고이음이란?', link: '#' },
+        { name: '창고이음이란?', link: '/about' },
         { name: '창고이음 이용안내', link: '#' },
       ],
     },
