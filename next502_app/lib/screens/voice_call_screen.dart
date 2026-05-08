@@ -1,8 +1,6 @@
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import '../services/agora_config.dart';
 
 class VoiceCallScreen extends StatefulWidget {
@@ -70,6 +68,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
     await _engine.enableAudio();
     await _engine.setEnableSpeakerphone(_isSpeakerPhone); // 기본 스피커폰 모드
 
+    try {
+      // 에뮬레이터에서는 여기서 -3 에러가 나며 멈출 수 있습니다.
+      await _engine.setEnableSpeakerphone(_isSpeakerPhone);
+    } catch (e) {
+      debugPrint("⚠️ 스피커폰 설정 지원되지 않음 (무시하고 진행): $e");
+    }
+    
     // 5. 채널 입장 (인증서 미사용 모드이므로 토큰은 "" 빈값 전달)
     await _engine.joinChannel(
       token: "", // 👈 아고라 콘솔에서 Certificate가 없으므로 빈 문자열 사용
