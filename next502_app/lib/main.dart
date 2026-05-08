@@ -39,17 +39,17 @@ void main() async {
     print("❌ .env 로드 실패: $e");
   }
 
-  final String? naverKey = dotenv.env['NAVER_MAP_CLIENT_ID'];
-
-  if (naverKey != null && naverKey.isNotEmpty) {
-    await FlutterNaverMap().init(
-      clientId: naverKey,
-      onAuthFailed: (ex) => print("네이버 맵 인증 실패: $ex"),
-    );
-    print("✅ 네이버 맵 초기화 성공");
-  } else {
-    print("⚠️ 네이버 맵 키가 없습니다. 지도 기능이 제한됩니다.");
-  }
+  // final String? naverKey = dotenv.env['NAVER_MAP_CLIENT_ID'];
+  //
+  // if (naverKey != null && naverKey.isNotEmpty) {
+  //   await FlutterNaverMap().init(
+  //     clientId: naverKey,
+  //     onAuthFailed: (ex) => print("네이버 맵 인증 실패: $ex"),
+  //   );
+  //   print("✅ 네이버 맵 초기화 성공");
+  // } else {
+  //   print("⚠️ 네이버 맵 키가 없습니다. 지도 기능이 제한됩니다.");
+  // }
 
   try {
     await Firebase.initializeApp(

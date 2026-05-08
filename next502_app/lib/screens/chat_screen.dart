@@ -1,4 +1,4 @@
-import 'dart:convert'; // 👈 json.decode 사용을 위해 추가
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -30,11 +30,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   // 1. [실시간 메시지 전송 로직]
   void _sendMessage() async {
     String text = _controller.text.trim();
@@ -62,7 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // 2. [이미지 업로드 로직]
+  // 2. [이미지 업로드 및 전송 로직]
   Future<void> _handleImageUpload(ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(source: source, imageQuality: 70);
     if (pickedFile == null) return;
@@ -97,7 +92,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // 3. [보이스톡 실행 로직]
+  // 3. [보이스톡 시작 로직] (내가 전화를 거는 상황)
   void _initiateVoiceCall() async {
     final auth = context.read<AuthProvider>();
     final String myId = auth.userId.toString();
@@ -113,23 +108,23 @@ class _ChatScreenState extends State<ChatScreen> {
         'createdAt': FieldValue.serverTimestamp(),
         'isRead': false,
         'chatType': 'VOICE',
-        'senderName': auth.userId.toString(),
-        'chatRoomId': widget.chatRoomId, // 👈 [추가] 방 번호를 데이터에 심어줌
+        'senderName': auth.userId.toString(), // 수신자 화면에 뜰 이름
       });
 
-      _goToCall();
+      _goToCall(widget.warehouseName); // 내가 걸었을 때는 창고 이름으로 표시
     } catch (e) {
       debugPrint("❌ 보이스톡 신호 전송 에러: $e");
     }
   }
 
-  void _goToCall() {
+  // 4. [통화 화면 이동 공통 함수]
+  void _goToCall(String displayName) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => VoiceCallScreen(
           channelId: widget.chatRoomId.toString(),
-          userName: widget.warehouseName,
+          userName: displayName,
         ),
       ),
     );
@@ -149,7 +144,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // 4. [메시지 리스트 영역]
+          // 5. [메시지 리스트 영역]
           Expanded(
             child: myId == null
                 ? const Center(child: CircularProgressIndicator())
@@ -171,12 +166,32 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 final docs = snapshot.data!.docs;
 
-                // ✅ [추가] 실시간 읽음 처리 로직
+                // ✅ [실시간 감지 로직]
+                // 렌더링 중에 루프를 돌며 보이스톡 신호와 읽음 처리를 수행합니다.
                 for (var doc in docs) {
                   final data = doc.data() as Map<String, dynamic>;
-                  // 내가 보낸 게 아니고(상대방 메시지), 아직 안 읽음(false) 상태라면
-                  if (data['senderId'] != myId.toString() && data['isRead'] == false) {
-                    doc.reference.update({'isRead': true}); // Firestore 서버 값 변경
+                  final String senderId = data['senderId'].toString();
+                  final bool isRead = data['isRead'] ?? false;
+                  final String chatType = data['chatType'] ?? 'TEXT';
+
+                  // 내가 보낸 게 아닌 메시지들 처리
+                  if (senderId != myId.toString()) {
+
+                    // 1. [보이스톡 신호 감지] 상대방이 건 전화라면 화면 전환
+                    if (chatType == 'VOICE' && !isRead) {
+                      // 중복 방지를 위해 즉시 읽음 처리 후 이동
+                      doc.reference.update({'isRead': true});
+
+                      // 빌드 도중 화면 이동을 위해 지연 실행
+                      Future.delayed(Duration.zero, () {
+                        _goToCall(data['senderName'] ?? "상대방");
+                      });
+                    }
+
+                    // 2. [일반 읽음 처리]
+                    if (!isRead) {
+                      doc.reference.update({'isRead': true});
+                    }
                   }
                 }
 
@@ -185,13 +200,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   return ChatMessageModel.fromFirestore(doc.id, data);
                 }).toList();
 
-                // 6. [기존 위젯 재사용] 데이터 매핑
                 return MessageList(messages: messages, myId: myId);
               },
             ),
           ),
 
-          // 하단 입력창 (잘린 코드 완벽 결합)
+          // 6. [하단 입력창 영역]
           Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
