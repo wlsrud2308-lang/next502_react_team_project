@@ -59,14 +59,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
           }
         },
         onError: (ErrorCodeType err, String msg) {
-          debugPrint("❌ 아고라 에러 발생: $msg");
+          debugPrint("❌ 아고라 에러 발생: $err / 메시지: $msg");
         },
       ),
     );
 
     // 4. 오디오 설정
     await _engine.enableAudio();
-    await _engine.setEnableSpeakerphone(_isSpeakerPhone); // 기본 스피커폰 모드
 
     try {
       // 에뮬레이터에서는 여기서 -3 에러가 나며 멈출 수 있습니다.
@@ -74,7 +73,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
     } catch (e) {
       debugPrint("⚠️ 스피커폰 설정 지원되지 않음 (무시하고 진행): $e");
     }
-    
+
     // 5. 채널 입장 (인증서 미사용 모드이므로 토큰은 "" 빈값 전달)
     await _engine.joinChannel(
       token: "", // 👈 아고라 콘솔에서 Certificate가 없으므로 빈 문자열 사용
