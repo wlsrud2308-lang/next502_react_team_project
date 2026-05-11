@@ -5,7 +5,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/warehouse_model.dart';
 import 'package:next502_app/utils/image_url_helper.dart';
 
-
 class WarehouseSlider extends StatelessWidget {
   final List<WarehouseModel> items;
   final _storage = const FlutterSecureStorage();
@@ -143,19 +142,21 @@ class WarehouseSlider extends StatelessWidget {
     );
   }
 
-  /// 카드 이미지 표시
+  /// 카드 이미지 표시 (수정된 부분)
   Widget _buildCardImage(WarehouseModel warehouse) {
-    final url = normalizeImageUrl(warehouse.repImageUrl) ??
-        (warehouse.images.isNotEmpty
-            ? normalizeImageUrl(warehouse.images[0].imageUrl)
+    // 1. 대표 이미지(repImageUrl)가 있는지 먼저 확인
+    // 2. 없으면 리스트(imageUrls)의 첫 번째 이미지 확인
+    final String? urlString = normalizeImageUrl(warehouse.repImageUrl) ??
+        (warehouse.imageUrls.isNotEmpty
+            ? normalizeImageUrl(warehouse.imageUrls[0])
             : null);
 
-    if (url == null) {
+    if (urlString == null || urlString.isEmpty) {
       return const Icon(Icons.warehouse, color: Colors.grey, size: 35);
     }
 
     return Image.network(
-      url,
+      urlString,
       fit: BoxFit.cover,
       errorBuilder: (ctx, err, stack) =>
       const Icon(Icons.broken_image, color: Colors.grey, size: 35),
@@ -196,3 +197,4 @@ class WarehouseSlider extends StatelessWidget {
     );
   }
 }
+

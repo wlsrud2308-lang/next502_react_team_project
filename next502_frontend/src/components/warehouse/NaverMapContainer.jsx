@@ -70,16 +70,28 @@ const NaverMapContainer = ({ warehouses, onMarkerClick }) => {
             pixelOffset: new window.naver.maps.Size(0, -10),
           });
 
+          // [이벤트 1] 마우스 올리면 정보창 열기
           window.naver.maps.Event.addListener(marker, 'mouseover', () => {
             infoWindow.open(mapRef.current, marker);
+
+            // 정보창 렌더링 후 버튼 이벤트 바인딩
             setTimeout(() => {
               const btn = document.getElementById(`info-btn-${item.warehouseId}`);
               if (btn && onMarkerClick) {
-                btn.onclick = () => onMarkerClick(item.warehouseId);
+                btn.onclick = (e) => {
+                  e.stopPropagation();
+                  onMarkerClick(item.warehouseId);
+                };
               }
-            }, 100);
+            }, 50);
           });
 
+          // [이벤트 2] 마우스가 마커 밖으로 나가면 정보창 닫기
+          window.naver.maps.Event.addListener(marker, 'mouseout', () => {
+            infoWindow.close();
+          });
+
+          // [이벤트 3] 마커 클릭 시 동작
           window.naver.maps.Event.addListener(marker, 'click', () => {
             if (onMarkerClick) onMarkerClick(item.warehouseId);
           });
@@ -88,14 +100,12 @@ const NaverMapContainer = ({ warehouses, onMarkerClick }) => {
           markersRef.current.push(marker);
         }
 
-        // ★ [핵심 수정] 데이터 개수에 따른 포커스 처리
+        // 데이터 개수에 따른 포커스 처리
         if (processedCount === warehouses.length && !bounds.isEmpty()) {
           if (warehouses.length === 1) {
-            // 데이터가 1개(상세 페이지)일 때는 줌 레벨 17로 크게 확대
             mapRef.current.setCenter(bounds.getCenter());
             mapRef.current.setZoom(17);
           } else {
-            // 여러 개일 때는 모든 마커가 보이도록 범위 조정
             mapRef.current.panToBounds(bounds);
           }
         }

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import '../widgets/main_search_bar.dart'; // 기존 만든 서치바 재사용
+import 'package:provider/provider.dart';
+import '../providers/warehouse_provider.dart';
+import '../models/warehouse_model.dart';
+import '../widgets/main_search_bar.dart';
+import '../utils/image_url_helper.dart'; // ★ 이미지 헬퍼 추가
 
 class WarehouseListScreen extends StatefulWidget {
   const WarehouseListScreen({super.key});
@@ -9,26 +13,50 @@ class WarehouseListScreen extends StatefulWidget {
 }
 
 class _WarehouseListScreenState extends State<WarehouseListScreen> {
-  // 필터링 상태 관리용
   String _selectedFilter = "전체";
   final List<String> _filters = ["전체", "보통", "야적", "냉동/냉장", "저장", "위험물"];
+  String? _lastSearchQuery;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final String currentQuery = ModalRoute.of(context)?.settings.arguments as String? ?? "";
+
+    if (_lastSearchQuery != currentQuery) {
+      _lastSearchQuery = currentQuery;
+      Future.microtask(() {
+        context.read<WarehouseProvider>().fetchWarehouses(
+            query: currentQuery,
+            type: _selectedFilter
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final String searchQuery = ModalRoute.of(context)?.settings.arguments as String? ?? "";
+    final warehouseProvider = context.watch<WarehouseProvider>();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("창고 검색 결과", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(
+          // ★ 검색어가 없을 때는 '창고 전체 목록'으로 표시
+          searchQuery.isEmpty ? "전체 창고 목록" : "'$searchQuery' 검색 결과",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          // 1. 검색바 재사용 (상단 고정)
           const MainSearchBar(),
 
-          // 2. 필터 칩 섹션 (가로 스크롤)
+          // 필터 칩 영역
           Container(
             height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -36,17 +64,25 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
               scrollDirection: Axis.horizontal,
               itemCount: _filters.length,
               itemBuilder: (context, index) {
+                final filterName = _filters[index];
+                final isSelected = _selectedFilter == filterName;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
-                    label: Text(_filters[index]),
-                    selected: _selectedFilter == _filters[index],
+                    label: Text(filterName),
+                    selected: isSelected,
                     onSelected: (bool selected) {
-                      setState(() => _selectedFilter = _filters[index]);
+                      if (selected) {
+                        setState(() => _selectedFilter = filterName);
+                        context.read<WarehouseProvider>().fetchWarehouses(
+                          query: searchQuery,
+                          type: filterName,
+                        );
+                      }
                     },
                     selectedColor: Colors.deepPurple,
                     labelStyle: TextStyle(
-                      color: _selectedFilter == _filters[index] ? Colors.white : Colors.black,
+                      color: isSelected ? Colors.white : Colors.black,
                       fontSize: 12,
                     ),
                   ),
@@ -54,63 +90,107 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
               },
             ),
           ),
-
-          const Divider(thickness: 1, height: 20),
-
-          // 3. 창고 목록 (세로 리스트)
+          const Divider(height: 10),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: 10, // 임시 데이터 개수
-              itemBuilder: (context, index) {
-                return _buildWarehouseListItem(context);
-              },
-            ),
+            child: _buildListContent(warehouseProvider, searchQuery),
           ),
         ],
       ),
     );
   }
 
-  // 개별 창고 리스트 아이템 위젯
-  Widget _buildWarehouseListItem(BuildContext context) {
+  Widget _buildListContent(WarehouseProvider provider, String query) {
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
+    }
+
+    if (provider.warehouses.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 60, color: Colors.grey[300]),
+            const SizedBox(height: 10),
+            Text(
+              _selectedFilter == "전체" ? "등록된 창고가 없습니다." : "$_selectedFilter 유형의 창고가 없습니다.",
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => provider.fetchWarehouses(query: query, type: _selectedFilter),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        itemCount: provider.warehouses.length,
+        itemBuilder: (context, index) {
+          final item = provider.warehouses[index];
+          return _buildWarehouseItem(context, item);
+        },
+      ),
+    );
+  }
+
+  Widget _buildWarehouseItem(BuildContext context, WarehouseModel item) {
+    // ★ 이미지 URL 정규화 적용
+    final String? imageUrl = normalizeImageUrl(item.repImageUrl) ??
+        (item.imageUrls.isNotEmpty ? normalizeImageUrl(item.imageUrls[0]) : null);
+
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/warehouse/info'), // 상세페이지 이동
+      onTap: () => Navigator.pushNamed(context, '/whInfo', arguments: item),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
+        margin: const EdgeInsets.only(bottom: 15),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
         ),
         child: Row(
           children: [
-            // 창고 이미지
-            Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: const BorderRadius.only(topLeft: Radius.circular(15), bottomLeft: Radius.circular(15)),
+            ClipRRect(
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
+              child: imageUrl != null
+                  ? Image.network(
+                imageUrl,
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                    width: 100,
+                    height: 100,
+                    color: Colors.grey[100],
+                    child: const Icon(Icons.broken_image, color: Colors.grey)
+                ),
+              )
+                  : Container(
+                  width: 100,
+                  height: 100,
+                  color: Colors.grey[100],
+                  child: const Icon(Icons.warehouse, color: Colors.grey)
               ),
-              child: const Icon(Icons.warehouse, color: Colors.grey, size: 40),
             ),
-            // 창고 정보
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(15.0),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("부산 사상구 대형 창고", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    const SizedBox(height: 5),
-                    const Text("부산광역시 사상구 엄궁동", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 10),
+                    Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(item.address, style: const TextStyle(color: Colors.grey, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        _buildTag("상온"),
+                        _tag(item.storageType ?? "보통"),
                         const SizedBox(width: 5),
-                        _buildTag("200평"),
+                        _tag("${item.totalArea.toInt()}평"),
+                        const SizedBox(width: 5),
+                        _tag(item.sizeRank), // 등급 정보 추가
                       ],
                     ),
                   ],
@@ -123,11 +203,12 @@ class _WarehouseListScreenState extends State<WarehouseListScreen> {
     );
   }
 
-  Widget _buildTag(String label) {
+  Widget _tag(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(5)),
-      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.blueGrey)),
+      decoration: BoxDecoration(color: Colors.deepPurple.withOpacity(0.05), borderRadius: BorderRadius.circular(5)),
+      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.deepPurple, fontWeight: FontWeight.bold)),
     );
   }
 }
+
