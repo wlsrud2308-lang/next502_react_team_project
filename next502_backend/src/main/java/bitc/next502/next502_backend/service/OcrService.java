@@ -46,10 +46,40 @@ public class OcrService {
             String rawText = tesseract.doOCR(tempFile.toFile());
             log.info("[OCR] 추출된 raw text:\n{}", rawText);
 
+            // ========================================================
+
+            log.info("=================================================");
+            log.info("[OCR] --- 사업자 종목 검증 로직 진입! ---");
+            validateBusinessSector(rawText);
+            log.info("[OCR] --- 검증 무사 통과! (서비스업 맞음) ---");
+            log.info("=================================================");
+            // ========================================================
+
+
             return parseLicenseText(rawText);
 
         } finally {
             Files.deleteIfExists(tempFile);
+        }
+    }
+
+
+    private void validateBusinessSector(String text) {
+
+        String cleanText = text.replaceAll("\\s+", "");
+
+
+        boolean isValid = cleanText.contains("서비스") ||
+                cleanText.contains("창고") ||
+                cleanText.contains("보관") ||
+                cleanText.contains("임대");
+
+        log.info("[OCR] 발견된 키워드 상태 (true면 통과, false면 반려) : {}", isValid);
+
+        if (!isValid) {
+            log.warn("[OCR] 서비스업/창고업 키워드가 없어 고의로 에러를 발생시킵니다!!!");
+
+            throw new IllegalArgumentException("반려: 서비스업(또는 창고/보관업) 사업자만 등록이 가능합니다.");
         }
     }
 

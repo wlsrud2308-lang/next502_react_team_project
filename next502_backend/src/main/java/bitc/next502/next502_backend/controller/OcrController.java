@@ -16,10 +16,6 @@ public class OcrController {
 
     private final OcrService ocrService;
 
-    /**
-     * 사업자등록증 이미지를 분석하여 상호/번호/대표자/주소를 추출.
-
-     */
     @PostMapping("/business-license")
     public ResponseEntity<?> extractBusinessLicense(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
@@ -37,8 +33,13 @@ public class OcrController {
         try {
             BusinessLicenseDTO result = ocrService.extractBusinessLicense(file);
             return ResponseEntity.ok(result);
-        }
-        catch (Exception e) {
+
+        } catch (IllegalArgumentException e) {
+
+            log.warn("[OCR] 검증 반려: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+
+        } catch (Exception e) {
             log.error("[OCR] 사업자등록증 분석 실패", e);
             return ResponseEntity.internalServerError()
                     .body("OCR 분석 중 오류 발생: " + e.getMessage());
