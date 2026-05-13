@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:next502_app/services/api_client.dart';
@@ -16,9 +17,8 @@ class _OcrScreenState extends State<OcrScreen> {
   final ApiClient _apiClient = ApiClient();
 
   File? _selectedImage;       // 선택된 사업자등록증 사진
-  bool _isUploading = false;  // 업로드 중 여부 (로딩 표시용)
-
-  // OCR 분석 결과 (성공 시 채워짐)
+  bool _isUploading = false;  // 업로드 중 여부
+  // OCR 분석 결과
   String? _companyName;
   String? _registerNumber;
   String? _representativeName;
@@ -59,7 +59,7 @@ class _OcrScreenState extends State<OcrScreen> {
     );
   }
 
-  /// 이미지 선택 후 곧바로 OCR API 호출
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? picked = await _picker.pickImage(
@@ -76,14 +76,13 @@ class _OcrScreenState extends State<OcrScreen> {
       });
 
       await _uploadAndAnalyze(File(picked.path));
-    }
-    catch (e) {
+    } catch (e) {
       _showSnack("사진을 가져올 수 없습니다: $e", isError: true);
       setState(() => _isUploading = false);
     }
   }
 
-  /// 백엔드로 사진 전송 → OCR 결과 받기
+
   Future<void> _uploadAndAnalyze(File file) async {
     try {
       final response = await _apiClient.uploadBusinessLicense(file);
@@ -99,19 +98,32 @@ class _OcrScreenState extends State<OcrScreen> {
           _isUploading = false;
         });
 
-        // 백엔드가 mock 모드일 경우 메시지로 안내
+
         final msg = data['message'] as String?;
         if (msg != null && msg.contains('[MOCK]')) {
           _showSnack("개발용 더미 데이터입니다 (mock 모드)");
         } else {
           _showSnack("OCR 분석이 완료되었습니다");
         }
-      } else {
-        _showSnack("OCR 분석 실패 (코드: ${response.statusCode})", isError: true);
-        setState(() => _isUploading = false);
       }
-    }
-    catch (e) {
+    } on DioException catch (e) {
+
+      String errorMsg = "OCR 분석 실패";
+
+      if (e.response != null && e.response?.data != null) {
+
+        errorMsg = e.response?.data.toString() ?? errorMsg;
+      }
+
+      _showSnack(errorMsg, isError: true);
+
+      setState(() {
+        _isUploading = false;
+        _selectedImage = null;
+      });
+
+    } catch (e) {
+
       _showSnack("서버 연결 실패: 잠시 후 다시 시도해주세요", isError: true);
       setState(() {
         _isUploading = false;
@@ -119,7 +131,6 @@ class _OcrScreenState extends State<OcrScreen> {
       });
     }
   }
-
 
   void _confirmAndReturn() {
     Navigator.pop(context, {
@@ -136,6 +147,7 @@ class _OcrScreenState extends State<OcrScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: isError ? Colors.redAccent : Colors.deepPurple,
+        duration: const Duration(seconds: 3), // 사용자가 읽을 수 있게 3초간 유지
       ),
     );
   }
@@ -221,7 +233,6 @@ class _OcrScreenState extends State<OcrScreen> {
       ),
     );
   }
-
 
   Widget _buildUploadArea() {
     return GestureDetector(

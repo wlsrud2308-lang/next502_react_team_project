@@ -83,6 +83,7 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // arguments 처리 시 에러 방지를 위해 null 체크 및 타입 캐스팅 강화
     final warehouse = widget.warehouseData ?? ModalRoute.of(context)!.settings.arguments as WarehouseModel;
     final int warehouseId = warehouse.warehouseId;
 
@@ -149,10 +150,9 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
 
                   const Divider(height: 40),
 
-                  // ★ 네이버 지도 섹션 (확대 레벨 17.5 적용)
                   _buildNaverMapSection(warehouse),
 
-                  const SizedBox(height: 120), // 하단 여백 충분히 확보
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -198,7 +198,6 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
     );
   }
 
-  // --- 확대 레벨이 적용된 네이버 지도 위젯 ---
   Widget _buildNaverMapSection(WarehouseModel warehouse) {
     if (warehouse.latitude == 0.0 || warehouse.longitude == 0.0) {
       return const SizedBox.shrink();
@@ -210,7 +209,7 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
         const Text("위치 정보", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 15),
         Container(
-          height: 280, // 지도를 조금 더 크게 조절
+          height: 280,
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
@@ -222,10 +221,10 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
               options: NaverMapViewOptions(
                 initialCameraPosition: NCameraPosition(
                   target: NLatLng(warehouse.latitude, warehouse.longitude),
-                  zoom: 17.5, // ★ 확대 레벨을 높여 건물이 자세히 보이게 함
+                  zoom: 17.5,
                 ),
-                scrollGesturesEnable: false, // 스크롤 방해 금지
-                zoomGesturesEnable: false,   // 고정 뷰
+                scrollGesturesEnable: false,
+                zoomGesturesEnable: false,
                 logoClickEnable: false,
               ),
               onMapReady: (controller) {
@@ -233,7 +232,6 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
                   id: 'location_${warehouse.warehouseId}',
                   position: NLatLng(warehouse.latitude, warehouse.longitude),
                 );
-                // 마커에 창고 이름 표시
                 marker.setCaption(NOverlayCaption(
                   text: warehouse.name,
                   textSize: 13,
@@ -262,18 +260,22 @@ class _WarehouseInfoScreenState extends State<WarehouseInfoScreen> {
     );
   }
 
+  // ★ 수정된 이미지 빌더 부분
   Widget _buildDetailImage(WarehouseModel warehouse) {
-    final url = normalizeImageUrl(warehouse.repImageUrl) ??
-        (warehouse.images.isNotEmpty
-            ? normalizeImageUrl(warehouse.images.first.imageUrl)
-            : null);
+    // 1. 대표 이미지를 먼저 시도
+    String? imageUrl = normalizeImageUrl(warehouse.repImageUrl);
 
-    if (url == null) {
+    // 2. 대표 이미지가 없으면 imageUrls 리스트의 첫 번째 항목 시도
+    if (imageUrl == null && warehouse.imageUrls.isNotEmpty) {
+      imageUrl = normalizeImageUrl(warehouse.imageUrls.first);
+    }
+
+    if (imageUrl == null) {
       return const Icon(Icons.image, size: 100, color: Colors.grey);
     }
 
     return Image.network(
-      url,
+      imageUrl,
       fit: BoxFit.cover,
       errorBuilder: (ctx, err, stack) =>
       const Icon(Icons.broken_image, size: 100, color: Colors.grey),

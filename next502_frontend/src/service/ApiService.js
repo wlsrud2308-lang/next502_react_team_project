@@ -7,7 +7,7 @@ const api = axios.create({
   },
 });
 
-// 요청 인터셉터: 로컬 스토리지에서 토큰을 꺼내 헤더에 주입
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('ACCESS_TOKEN');
   if (token) {
@@ -16,9 +16,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ==========================================
-// 1. 인증 관련 API (Login, Signup, Find)
-// ==========================================
 
 // 로그인
 export const apiLogin = async (userId, userPw) => {
@@ -84,9 +81,6 @@ export const apiResetPw = async (userId, newUserPw) => {
   }
 };
 
-// ==========================================
-// 2. 창고 관련 API (Search, Detail, Insert)
-// ==========================================
 
 /**
  * 창고 목록 조회 (필터링 지원)
@@ -156,7 +150,6 @@ export const getMyWarehouseList = async () => {
   }
 };
 
-
 // 내 정보 조회
 export const getMyInfo = async () => {
   try {
@@ -177,7 +170,7 @@ export const updateMemberInfo = async (data) => {
   }
 };
 
-// 사업자등록증 OCR
+
 export const uploadBusinessLicense = async (imageFile) => {
   try {
     const formData = new FormData();
@@ -188,7 +181,13 @@ export const uploadBusinessLicense = async (imageFile) => {
     });
     return res.data;
   } catch (err) {
-    throw err.response?.data?.message || 'OCR 분석 실패';
+
+    if (err.response && err.response.data) {
+      throw typeof err.response.data === 'string'
+        ? err.response.data
+        : err.response.data.message || 'OCR 분석 실패';
+    }
+    throw '서버 통신 실패';
   }
 };
 
@@ -223,7 +222,6 @@ export const updateWarehouseInfo = async (id, formData) => {
     throw err.response?.data || '수정 실패';
   }
 };
-
 
 export const deleteWarehouse = async (id) => {
   try {

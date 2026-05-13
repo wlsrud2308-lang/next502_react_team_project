@@ -10,7 +10,7 @@ class WarehouseModel {
   final String? description;
   final String? amenities;
   final String? repImageUrl;
-  final List<WarehouseImageModel> images;
+  final List<String> imageUrls; // ★ 백엔드 DTO의 List<String> 구조에 맞춤
 
   // --- 지도 기능을 위해 추가된 필드 ---
   final double latitude;  // 위도
@@ -28,8 +28,7 @@ class WarehouseModel {
     this.description,
     this.amenities,
     this.repImageUrl,
-    this.images = const [],
-    // 위/경도 필수값으로 설정 (좌표가 없으면 지도에 표시 불가)
+    this.imageUrls = const [], // 기본값 빈 리스트
     required this.latitude,
     required this.longitude,
   });
@@ -51,28 +50,14 @@ class WarehouseModel {
       amenities: json['amenities'],
       repImageUrl: json['repImageUrl'],
 
-      // 이미지 리스트 매핑
-      images: (json['images'] as List? ?? [])
-          .map((img) => WarehouseImageModel.fromJson(img))
-          .toList(),
+      // ★ 백엔드 WarehouseDTO의 imageUrls (List<String>) 매핑
+      imageUrls: json['imageUrls'] != null
+          ? List<String>.from(json['imageUrls'])
+          : [],
 
-      // --- 서버 응답에서 위도, 경도 추출 (변수명은 DB 컬럼명에 맞게 조정하세요) ---
+      // 서버 응답에서 위도, 경도 추출
       latitude: double.tryParse(json['latitude']?.toString() ?? '37.5666') ?? 37.5666,
       longitude: double.tryParse(json['longitude']?.toString() ?? '126.9784') ?? 126.9784,
-    );
-  }
-}
-
-class WarehouseImageModel {
-  final int warehouseImageId;
-  final String imageUrl;
-
-  WarehouseImageModel({required this.warehouseImageId, required this.imageUrl});
-
-  factory WarehouseImageModel.fromJson(Map<String, dynamic> json) {
-    return WarehouseImageModel(
-      warehouseImageId: json['warehouseImageId'] ?? json['id'] ?? 0,
-      imageUrl: json['imageUrl'] ?? '',
     );
   }
 }
