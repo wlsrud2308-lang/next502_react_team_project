@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Phone, MoreVertical, ChevronLeft } from 'lucide-react';
+import { Send, Paperclip, Phone, MoreVertical, LogOut } from 'lucide-react'; // 🌟 LogOut 아이콘 추가
 import axios from 'axios';
 import { db, auth } from '../../api/firebaseConfig';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, signOut } from 'firebase/auth'; // 🌟 signOut 추가
 import {
   collection,
   query,
@@ -10,6 +10,8 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  doc,
+  updateDoc,
 } from 'firebase/firestore';
 
 export default function ChatPage() {
@@ -59,7 +61,8 @@ export default function ChatPage() {
 
   // 2. 채팅방 선택 시: 메시지 구독 및 읽음 처리
   useEffect(() => {
-    if (!currentRoom) return;
+    // 🌟 [중요]: 실시간 감지를 위해 의존성 배열에 currentUser가 필요하므로 가드 추가
+    if (!currentRoom || !currentUser) return;
 
     const token = localStorage.getItem('ACCESS_TOKEN');
     const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -71,7 +74,37 @@ export default function ChatPage() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const msgs = snapshot.docs.map((documentDoc) => {
+        const data = documentDoc.data();
+        const msgId = documentDoc.id;
+
+        // 🌟 [실시간 읽음 트리거]: 내가 방을 열어놓고 대기 중일 때 상대방(앱)이 보낸 새 메시지가 포착되면 즉시 읽음 처리
+        // 1. 내가 보낸 게 아니고 (senderId != 내 ID)
+        // 2. 파이어베이스 상태가 안 읽음(isRead가 false이거나 isReadYn이 'N')인 경우
+        if (
+          String(data.senderId) !== String(currentUser.id) &&
+          (data.isRead === false || data.isReadYn === 'N')
+        ) {
+          // A. Firestore의 해당 메시지 문서를 즉시 읽음 상태로 실시간 업데이트 (앱 화면의 숫자 1 즉시 지우기)
+          const docRef = doc(db, 'chatRooms', String(currentRoom.chatRoomId), 'messages', msgId);
+          updateDoc(docRef, {
+            isRead: true,
+            isReadYn: 'Y',
+          }).catch((err) => console.error('Firestore 실시간 읽음 처리 실패:', err));
+
+          // B. 백엔드 MySQL 데이터베이스 데이터도 실시간 동기화 벌크 작동
+          axios
+            .patch(`${API_BASE_URL}/chat/room/${currentRoom.chatRoomId}/read`, {}, config)
+            .catch(() => {});
+        }
+
+        return {
+          id: msgId,
+          ...data,
+          message: data.message || data.content || '', // 웹-앱 데이터 키 호환 안전망
+        };
+      });
+
       setMessages(msgs);
 
       // 메시지 수신 후 하단 스크롤
@@ -82,13 +115,8 @@ export default function ChatPage() {
       }, 100);
     });
 
-    // 백엔드 읽음 처리 API 호출
-    axios
-      .patch(`${API_BASE_URL}/chat/room/${currentRoom.chatRoomId}/read`, {}, config)
-      .catch(() => {});
-
     return () => unsubscribe();
-  }, [currentRoom, API_BASE_URL]);
+  }, [currentRoom, currentUser, API_BASE_URL]);
 
   // 3. 텍스트 메시지 전송
   const handleSend = async () => {
@@ -153,11 +181,46 @@ export default function ChatPage() {
     }
   };
 
+  // 🌟 5. 신규 추가: 안전한 세션 로그아웃 및 웹 채팅 패널 즉시 파괴 함수
+  const handleLogout = async () => {
+    const isConfirm = window.confirm('로그아웃 하시겠습니까?');
+    if (!isConfirm) return;
+
+    try {
+      await signOut(auth); // 파이어베이스 토큰 파괴
+
+      // 브라우저 내 세션 파편 제거
+      localStorage.removeItem('ACCESS_TOKEN');
+      localStorage.removeItem('USER_INFO');
+
+      // [핵심 조치]: 모든 렌더링 요소를 완전히 비워 우측 채팅 패널을 즉시 대기 상태로 강제 전환
+      setCurrentRoom(null);
+      setMessages([]);
+      setRooms([]);
+      setCurrentUser(null);
+
+      alert('안전하게 로그아웃되었습니다.');
+      window.location.href = '/login'; // 로그인 페이지로 리다이렉션
+    } catch (err) {
+      console.error('로그아웃 처리 중 오류:', err);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* 1. 좌측 사이드바 (채팅방 목록) */}
       <div className="w-1/3 min-w-[320px] bg-white border-r border-gray-200 flex flex-col shadow-sm">
-        <div className="p-5 border-b bg-white font-bold text-xl text-purple-700">채팅 목록</div>
+        {/* 🌟 헤더 우측 영역에 로그아웃 트리거 단추 연결 확장 */}
+        <div className="p-5 border-b bg-white font-bold text-xl text-purple-700 flex justify-between items-center">
+          <span>채팅 목록</span>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1 text-xs text-red-500 font-medium bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition-colors border border-red-200 cursor-pointer"
+          >
+            <LogOut size={13} />
+            로그아웃
+          </button>
+        </div>
         <div className="overflow-y-auto flex-1">
           {rooms.map((room) => (
             <div
@@ -223,7 +286,6 @@ export default function ChatPage() {
                         </div>
                       )}
 
-                      {/* ✅ 말풍선 본체: 인라인 스타일로 배경색 및 글자색 강제 지정 */}
                       <div
                         className={`px-4 py-2 rounded-2xl shadow-sm ${
                           isMine ? 'rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'
@@ -251,7 +313,14 @@ export default function ChatPage() {
                       <div
                         className={`text-[9px] mt-1 text-gray-400 flex items-center gap-1 ${isMine ? 'flex-row-reverse' : ''}`}
                       >
-                        {isMine && !msg.isRead && <span className="text-warning font-bold">1</span>}
+                        {isMine &&
+                          (msg.isRead === false ||
+                            msg.isReadYn === 'N' ||
+                            (msg.isRead === undefined && msg.isReadYn !== 'Y')) && (
+                            <span className="text-warning font-bold" style={{ marginRight: '4px' }}>
+                              1
+                            </span>
+                          )}
                         <span>
                           {msg.createDate
                             ? new Date(msg.createDate).toLocaleTimeString([], {
@@ -279,7 +348,8 @@ export default function ChatPage() {
                 <input
                   type="file"
                   ref={fileInputRef}
-                  className="d-none"
+                  className="hidden" // 부트스트랩 d-none 규격을 크로스 호환용 피드백 처리
+                  style={{ display: 'none' }}
                   accept="image/*"
                   onChange={handleImageUpload}
                 />
@@ -313,3 +383,4 @@ export default function ChatPage() {
     </div>
   );
 }
+

@@ -10,6 +10,8 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  doc,
+  updateDoc,
 } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 
@@ -68,15 +70,11 @@ export default function FloatingChatBar({ isOpen, setIsOpen, initialRoom }) {
 
   // 4. [Firestore] 실시간 메시지 구독 및 읽음 처리
   useEffect(() => {
-    if (!selectedRoom) return;
+    // 🌟 실시간 읽음 처리를 위해 userData 조건 가드 추가
+    if (!selectedRoom || !userData) return;
 
     const token = localStorage.getItem('ACCESS_TOKEN');
     const config = { headers: { Authorization: `Bearer ${token}` } };
-
-    // 읽음 처리 알림 (백엔드 MySQL 업데이트)
-    axios
-      .patch(`${API_BASE_URL}/chat/room/${selectedRoom.chatRoomId}/read`, {}, config)
-      .catch(() => {});
 
     // Firestore 메시지 실시간 구독
     const q = query(
@@ -87,10 +85,37 @@ export default function FloatingChatBar({ isOpen, setIsOpen, initialRoom }) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const msgs = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const msgs = snapshot.docs.map((documentDoc) => {
+          const data = documentDoc.data();
+          const msgId = documentDoc.id;
+
+          // 🌟 [실시간 읽음 트리거]: 플로팅 대화창을 열고 대기 중일 때 앱 유저가 새 메시지를 보내면 즉시 읽음 마킹
+          // 1. 내가 보낸 게 아니고 (senderId != 내 ID)
+          // 2. 파이어베이스 상태가 안 읽음(isRead가 false이거나 isReadYn이 'N')인 경우
+          if (
+            String(data.senderId) !== String(userData.id) &&
+            (data.isRead === false || data.isReadYn === 'N')
+          ) {
+            // A. Firestore 문서를 실시간 읽음 완료 상태로 즉시 업데이트 (앱 화면의 숫자 1 실시간 삭제 유도)
+            const docRef = doc(db, 'chatRooms', String(selectedRoom.chatRoomId), 'messages', msgId);
+            updateDoc(docRef, {
+              isRead: true,
+              isReadYn: 'Y',
+            }).catch((err) => console.error('Firestore 실시간 읽음 처리 실패:', err));
+
+            // B. 백엔드 MySQL 데이터베이스 읽음 상태도 실시간 동기화 호출
+            axios
+              .patch(`${API_BASE_URL}/chat/room/${selectedRoom.chatRoomId}/read`, {}, config)
+              .catch(() => {});
+          }
+
+          return {
+            id: msgId,
+            ...data,
+            message: data.message || data.content || '', // 웹-앱 데이터 키 호환성 안전망
+          };
+        });
+
         setMessages(msgs);
 
         // 메시지 수신 시 스크롤 하단 이동
@@ -104,7 +129,7 @@ export default function FloatingChatBar({ isOpen, setIsOpen, initialRoom }) {
     );
 
     return () => unsubscribe();
-  }, [selectedRoom]);
+  }, [selectedRoom, userData]);
 
   // 5. 메시지 전송 로직
   const saveMessage = async (type, content, fileUrl = null) => {
@@ -250,9 +275,12 @@ export default function FloatingChatBar({ isOpen, setIsOpen, initialRoom }) {
                       </div>
                     )}
                     <div className="text-muted mt-1" style={{ fontSize: '9px' }}>
-                      {isMine && !msg.isRead && (
-                        <span className="text-warning fw-bold me-1">1</span>
-                      )}
+                      {isMine &&
+                        (msg.isRead === false ||
+                          msg.isReadYn === 'N' ||
+                          (msg.isRead === undefined && msg.isReadYn !== 'Y')) && (
+                          <span className="text-warning fw-bold me-1">1</span>
+                        )}
                       {msg.createDate &&
                         new Date(msg.createDate).toLocaleTimeString([], {
                           hour: '2-digit',

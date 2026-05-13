@@ -30,13 +30,15 @@ class _ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // 🌟 중복 보이스톡 화면 이동을 원천 차단하는 상태 제어 플래그 추가
+  bool _isCallNavigating = false;
+
   // 1. [실시간 메시지 전송 로직]
   void _sendMessage() async {
     String text = _controller.text.trim();
     if (text.isEmpty) return;
 
     _controller.clear();
-
     final auth = context.read<AuthProvider>();
     final String myId = auth.userId.toString();
 
@@ -48,14 +50,18 @@ class _ChatScreenState extends State<ChatScreen> {
           .add({
         'senderId': myId,
         'content': text,
-        'createdAt': FieldValue.serverTimestamp(),
+        'message': text, // 웹 대시보드 호환용
+        'createdAt': FieldValue.serverTimestamp(), // 서버 정렬용
+        'createDate': DateTime.now().toIso8601String(), // 👈 웹 및 앱 시간 텍스트 출력용 표준 키 동시 적재
         'isRead': false,
+        'isReadYn': 'N',
         'chatType': 'TEXT',
       });
     } catch (e) {
       debugPrint("❌ 파이어베이스 메시지 전송 에러: $e");
     }
   }
+
 
   // 2. [이미지 업로드 및 전송 로직]
   Future<void> _handleImageUpload(ImageSource source) async {
@@ -81,8 +87,11 @@ class _ChatScreenState extends State<ChatScreen> {
             .add({
           'senderId': myId,
           'content': '[사진]',
+          'message': '[사진]',
           'createdAt': FieldValue.serverTimestamp(),
+          'createDate': DateTime.now().toIso8601String(), // 👈 이미지 전송 시에도 표준 시간 키 동시 적재
           'isRead': false,
+          'isReadYn': 'N',
           'chatType': 'IMAGE',
           'fileUrl': imageUrl,
         });
@@ -107,6 +116,7 @@ class _ChatScreenState extends State<ChatScreen> {
         'content': '보이스톡 요청',
         'createdAt': FieldValue.serverTimestamp(),
         'isRead': false,
+        'isReadYn': 'N', // 👈 React 크로스 호환용 필드 통합
         'chatType': 'VOICE',
         'senderName': auth.userId.toString(), // 수신자 화면에 뜰 이름
       });
@@ -130,6 +140,47 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  // 🌟 5. [비즈니스 사이드 이펙트 제어 분리] 빌드가 끝난 후 안전하게 Firestore 업데이트 수행
+  void _handleSideEffects(List<QueryDocumentSnapshot> docs, String myId) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      for (var doc in docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final String senderId = data['senderId'].toString();
+        final String chatType = data['chatType'] ?? 'TEXT';
+
+        // 크로스 플랫폼(웹/앱)이 저장하는 모든 형태의 읽음 유무 데이터를 유연하게 교차 검증
+        final bool isAlreadyRead = (data['isRead'] == true) || (data['isReadYn'] == 'Y');
+
+        // 내가 보낸 게 아닌 상대방이 보낸 메시지들만 가공 대상 적용
+        if (senderId != myId) {
+
+          // 1. [보이스톡 신호 감지] 아직 안 읽은 통화 요청이며, 중복 이동 중이 아닐 때
+          if (chatType == 'VOICE' && !isAlreadyRead && !_isCallNavigating) {
+            _isCallNavigating = true; // 플래그 락(Lock) 세팅
+
+            // 데이터 무결성을 위해 양쪽 웹/앱 필드를 동시에 업데이트
+            await doc.reference.update({
+              'isRead': true,
+              'isReadYn': 'Y',
+            });
+
+            _goToCall(data['senderName'] ?? "상대방");
+            _isCallNavigating = false; // 플래그 언락(Unlock)
+            break; // 화면 이탈이 일어나므로 트래픽 루프 즉시 정지
+          }
+
+          // 2. [일반 읽음 처리] 정말로 읽지 않은 새 메시지가 식별되었을 때만 단 한 번 업데이트 요청
+          if (!isAlreadyRead) {
+            doc.reference.update({
+              'isRead': true,
+              'isReadYn': 'Y', // 👈 웹 플로팅 바 컴포넌트와의 읽음 연동 완전 동기화 핵심
+            });
+          }
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -144,7 +195,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          // 5. [메시지 리스트 영역]
+          // 5. [메시지 리스트 영역] -> 화면 렌더링에만 집중하도록 극도로 경량화
           Expanded(
             child: myId == null
                 ? const Center(child: CircularProgressIndicator())
@@ -166,34 +217,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 final docs = snapshot.data!.docs;
 
-                // ✅ [실시간 감지 로직]
-                // 렌더링 중에 루프를 돌며 보이스톡 신호와 읽음 처리를 수행합니다.
-                for (var doc in docs) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final String senderId = data['senderId'].toString();
-                  final bool isRead = data['isRead'] ?? false;
-                  final String chatType = data['chatType'] ?? 'TEXT';
-
-                  // 내가 보낸 게 아닌 메시지들 처리
-                  if (senderId != myId.toString()) {
-
-                    // 1. [보이스톡 신호 감지] 상대방이 건 전화라면 화면 전환
-                    if (chatType == 'VOICE' && !isRead) {
-                      // 중복 방지를 위해 즉시 읽음 처리 후 이동
-                      doc.reference.update({'isRead': true});
-
-                      // 빌드 도중 화면 이동을 위해 지연 실행
-                      Future.delayed(Duration.zero, () {
-                        _goToCall(data['senderName'] ?? "상대방");
-                      });
-                    }
-
-                    // 2. [일반 읽음 처리]
-                    if (!isRead) {
-                      doc.reference.update({'isRead': true});
-                    }
-                  }
-                }
+                // 👈 [수정 적용]: 프레임워크 렌더링 파이프라인 우회 콜백 함수 호출 처리 완료
+                _handleSideEffects(docs, myId.toString());
 
                 final List<ChatMessageModel> messages = docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -222,7 +247,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
-
 
 
 

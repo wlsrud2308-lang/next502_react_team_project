@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatMessageModel {
-  final String id;        // 👈 Firestore 랜덤 문자열 ID 수용을 위해 String 변경
+  final String id;        // Firestore 랜덤 문자열 ID 수용을 위해 String 유지
   final String message;
   final String chatType;
-  final String senderId;  // 👈 데이터 타입 충돌 방지를 위해 String 변경
+  final String senderId;  // 데이터 타입 충돌 방지를 위해 String 유지
   final String? fileUrl;
   final String createdAt;
   final String isReadYn;
@@ -42,7 +42,7 @@ class ChatMessageModel {
   /// 1. 기존 스프링부트 REST API 및 소켓 데이터를 다룰 때 사용하는 생성자
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
     return ChatMessageModel(
-      id: json['id']?.toString() ?? '0', // 숫자가 오든 문자가 오든 문자로 안전하게 치환
+      id: json['id']?.toString() ?? '0',
       message: json['message'] ?? '',
       chatType: json['chatType'] ?? 'TEXT',
       senderId: json['senderId']?.toString() ?? '0',
@@ -52,30 +52,36 @@ class ChatMessageModel {
     );
   }
 
-  /// 2. ⚠️ [추가] 파이어베이스 Firestore에서 데이터를 가져올 때 사용하는 전용 생성자
+  /// 2. ⚠️ [완벽 교정] 파이어베이스 Firestore에서 데이터를 가져올 때 사용하는 전용 생성자
   factory ChatMessageModel.fromFirestore(String docId, Map<String, dynamic> json) {
     String formattedCreatedAt;
     final dynamic rawCreatedAt = json['createdAt'];
 
     // Firestore의 Timestamp 및 Null 상태를 방어하는 안전한 파싱 로직
-    if (rawCreatedAt is Timestamp) {
+    if (rawCreatedAt == null) {
+      formattedCreatedAt = json['createDate'] ?? DateTime.now().toIso8601String();
+    } else if (rawCreatedAt is Timestamp) {
       formattedCreatedAt = rawCreatedAt.toDate().toIso8601String();
     } else if (rawCreatedAt is DateTime) {
       formattedCreatedAt = rawCreatedAt.toIso8601String();
     } else if (rawCreatedAt is String) {
       formattedCreatedAt = rawCreatedAt;
     } else {
-      formattedCreatedAt = DateTime.now().toIso8601String(); // 기본값 부여
+      formattedCreatedAt = DateTime.now().toIso8601String();
     }
 
+    final bool isReadFieldTrue = json['isRead'] == true;
+    final bool isReadYnFieldYes = json['isReadYn'] == 'Y';
+    final String finalReadStatus = (isReadFieldTrue || isReadYnFieldYes) ? 'Y' : 'N';
+
     return ChatMessageModel(
-      id: docId, // Firestore의 문서 고유 ID 주입
-      message: json['content'] ?? '', // 팀원 규격인 content 매핑
+      id: docId,
+      message: json['content'] ?? json['message'] ?? '',
       chatType: json['chatType'] ?? 'TEXT',
       senderId: json['senderId']?.toString() ?? '0',
       fileUrl: json['fileUrl'],
       createdAt: formattedCreatedAt,
-      isReadYn: json['isRead'] == true ? 'Y' : 'N', // bool 타입을 기존 규격인 Y/N으로 치환
+      isReadYn: finalReadStatus, //
     );
   }
 }
@@ -100,5 +106,6 @@ class ChatRoomModel {
     );
   }
 }
+
 
 
