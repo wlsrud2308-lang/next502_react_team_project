@@ -26,7 +26,7 @@ function MyPage() {
   }, []);
 
   const handleLogout = () => {
-    if (window.confirm('정말 로그아웃 하시습니까?')) {
+    if (window.confirm('정말 로그아웃 하시겠습니까?')) {
       logout();
       navigate('/');
     }
@@ -65,7 +65,6 @@ function MyPage() {
 
                 <button
                   className="btn btn-outline-secondary btn-sm w-100 rounded-pill mt-2"
-
                   onClick={() => navigate('/mypage/edit', { state: { memberInfo } })}
                 >
                   회원 정보 수정
@@ -92,16 +91,7 @@ function MyPage() {
                       </div>
                       <span className="text-secondary small">❯</span>
                     </button>
-                    <button
-                      className="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3 px-4 border-0"
-                      onClick={() => navigate('/chat-list')}
-                    >
-                      <div className="d-flex align-items-center">
-                        <span className="me-3 fs-5">💬</span>
-                        <span>채팅 문의 내역</span>
-                      </div>
-                      <span className="text-secondary small">❯</span>
-                    </button>
+
                   </div>
                 </div>
               </div>
@@ -148,7 +138,8 @@ function MyPage() {
                   <div className="list-group list-group-flush">
                     <button
                       className="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-3 px-4 border-0"
-                      onClick={() => navigate('/faq')}
+
+                      onClick={() => navigate('/community/qna')}
                     >
                       <div className="d-flex align-items-center">
                         <span className="me-3 fs-5">❓</span>

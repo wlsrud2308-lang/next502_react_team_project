@@ -35,7 +35,7 @@ function EditProfile() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 생년월일 포맷팅 로직 (YYYYMMDD -> YYYY-MM-DD)[cite: 2]
+  // 생년월일 포맷팅 로직 (YYYYMMDD -> YYYY-MM-DD)
   const formatBirth = (input) => {
     const digitsOnly = input.replace(/-/g, '');
     if (/^\d{8}$/.test(digitsOnly)) {
@@ -61,14 +61,15 @@ function EditProfile() {
         tel: formData.tel.trim(),
       };
 
-      // 비밀번호가 있을 때만 포함[cite: 2]
+
       if (formData.userPw.trim() !== '') {
         updateData.userPw = formData.userPw;
       }
 
       await updateMemberInfo(updateData);
       alert('정보가 수정되었습니다.');
-      navigate('/api/member/me');
+
+      navigate('/mypage');
     } catch (err) {
       alert('수정에 실패했습니다.');
     } finally {
@@ -110,7 +111,8 @@ function EditProfile() {
                   </div>
                   <div
                     className="list-group-item border-0 py-3 cursor-pointer mb-2"
-                    onClick={() => navigate('/api/member/me')}
+
+                    onClick={() => navigate('/mypage')}
                   >
                     🏠 마이페이지 홈
                   </div>
@@ -118,7 +120,7 @@ function EditProfile() {
               </div>
             </div>
 
-            {/* [오른쪽] 메인 컨텐츠 영역 - 실제 수정 폼 */}
+
             <div className="col-lg-9">
               <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div className="p-5 bg-white border-bottom border-light">
