@@ -58,9 +58,15 @@ function Header() {
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem('USER_INFO');
+    localStorage.removeItem('ACCESS_TOKEN');
+    localStorage.clear(); // 안전을 위해 전체 스토리지 일괄 청소
+
     logout();
+
     alert('로그아웃 되었습니다.');
-    navigate('/');
+
+    window.location.href = '/';
   };
 
   const isWhiteStyle = !isMainPage || isScrolled;

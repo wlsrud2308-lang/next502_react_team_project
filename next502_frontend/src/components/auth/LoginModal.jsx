@@ -9,7 +9,7 @@ function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
 
   if (!isOpen) return null;
 
-  // 일반 로그인 처리
+  // 1. 일반 로그인 처리 (새로고침 반영)
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -20,15 +20,18 @@ function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
         userNick: data.userNick || userId,
       };
       localStorage.setItem('USER_INFO', JSON.stringify(userInfo));
-      
+
       loginSuccess(data.token || data.accessToken, data.role, data.userId || data.id);
       onClose();
+
+      // 🌟 [새로고침 추가] 로그인 전반 리렌더링 및 채팅바 세션 즉시 가동
+      window.location.reload();
     } catch (err) {
       alert(err);
     }
   };
 
-  // ★ 3단계: 카카오 로그인
+  // 2. 카카오 로그인 처리 (새로고침 및 세션 누락 패치)
   const handleKakaoLogin = () => {
     if (!window.Kakao) {
       alert('카카오 SDK가 아직 불러와지지 않았습니다. 잠시 후 다시 시도해주세요.');
@@ -36,12 +39,10 @@ function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
     }
     const Kakao = window.Kakao;
 
-    // 1. 카카오 인증 서비스 호출
     Kakao.Auth.login({
       success: function (authObj) {
         console.log('카카오 인증 성공:', authObj);
 
-        // 2. 사용자 정보 요청
         Kakao.API.request({
           url: '/v2/user/me',
           success: async function (res) {
@@ -49,21 +50,25 @@ function LoginModal({ isOpen, onClose, onSwitchToSignup }) {
 
             const kakaoAccount = res.kakao_account;
             const nickname = kakaoAccount?.profile?.nickname || '카카오유저';
-            const email = kakaoAccount?.email || ''; //[cite: 1]
 
             try {
+              const response = await loginWithKakao(authObj.access_token, res.id, nickname);
 
-              const response = await loginWithKakao(
-                authObj.access_token, // 카카오 발급 토큰
-                res.id, // 카카오 고유 식별자
-                nickname, // 닉네임
-              );
-
+              // 🌟 [누락 가드 보완]: 카카오 유저 정보도 로컬스토리지에 밀어 넣어 채팅바 연동 대응
+              const userInfo = {
+                id: response.id || res.id,
+                userId: `kakao_${res.id}`,
+                userNick: nickname,
+              };
+              localStorage.setItem('USER_INFO', JSON.stringify(userInfo));
 
               loginSuccess(response.accessToken, response.role, response.id);
 
               alert(`${nickname}님, 환영합니다!`);
               onClose();
+
+              // 🌟 [새로고침 추가] 카카오 동기화 데이터 강제 새로고침 리로드
+              window.location.reload();
             } catch (err) {
               console.error('백엔드 연동 실패:', err);
               alert('서버 로그인 처리 중 오류가 발생했습니다.');
